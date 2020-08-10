@@ -1,0 +1,18 @@
+- name: SHELL; add the official postgresql repo
+  shell: echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list
+  args:
+    creates: /etc/apt/sources.list.d/pgdg.list
+
+- name: SHELL; import the repo signing key for postgresql repo
+  shell: wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+  args:
+    warn: false
+
+- name: APT; update cache and install postgresql server and client
+  apt:
+    name:
+      - postgresql-11
+      - postgresql-client-11
+      - python-psycopg2
+    state: present
+    update_cache: yes

@@ -1,0 +1,62 @@
+- name: SET_FACT; set install k3s version only if K3S_VERSION is defined
+  set_fact:
+    k3s_version: "INSTALL_K3S_VERSION={{ K3S_VERSION }}"
+  when: K3S_VERSION is defined
+
+- name: SET_FACT; set k3s_docker_flag only if K3S_DOCKER_ENABLE is defined and true
+  set_fact:
+    k3s_docker_flag:  "--docker"
+  when: K3S_DOCKER_ENABLE is defined and K3S_DOCKER_ENABLE|bool
+
+- name: SET_FACT; set k3s_disable_traefik if K3S_TRAEFIK_ENABLE is undefined or false
+  set_fact:
+    k3s_disable_traefik:  "INSTALL_K3S_EXEC=\"--disable traefik\""
+  when: K3S_TRAEFIK_ENABLE is undefined or not K3S_TRAEFIK_ENABLE|bool
+
+- name: SET_FACT; set k3s_postgresql_env if K3S_POSTGRESQL_ENABLE is defined and true
+  set_fact:
+    k3s_postgresql_env:  "K3S_DATASTORE_ENDPOINT='postgres://{{ K3S_POSTGRESQL_USER }}:{{ K3S_POSTGRESQL_PASS }}@{{ K3S_POSTGRESQL_HOST }}:{{ K3S_POSTGRESQL_PORT }}/{{ K3S_POSTGRESQL_DB }}'"
+  when: inventory_hostname in groups['k3s-masters'] and K3S_POSTGRESQL_ENABLE is defined and K3S_POSTGRESQL_ENABLE|bool
+
+- name: FILE; create /opt/k3s
+  file:
+    path: /opt/k3s
+    state: directory
+    mode: 0755
+
+###
+# Install master node
+###
+- name: SHELL; execute install script on master nodes first
+  shell: "curl -sfL https://get.k3s.io | {{ k3s_postgresql_env | default('') }} {{ k3s_version | default('') }} {{ k3s_disable_traefik | default() }} sh -s - {{ k3s_docker_flag | default('') }} >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
+  args:
+    warn: false
+  when: inventory_hostname in groups['k3s-masters'] and K3S_MASTER_INSTALL is defined and K3S_MASTER_INSTALL|bool
+
+- name: SET_FACT; obtain the k3s_master_ip
+  set_fact:
+    k3s_master_ip: "{{ hostvars[groups['k3s-masters'][0]]['ansible_host'] }}"
+    k3s_master_url: "https://{{ hostvars[groups['k3s-masters'][0]]['ansible_host'] }}:{{ K3S_MASTER_PORT }}"
+
+- name: SHELL; grab the token from the master
+  shell: cat /var/lib/rancher/k3s/server/node-token
+  register: k3s_master_token_file
+  run_once: yes
+  when: inventory_hostname in groups['k3s-masters']
+
+- name: SET_FACT; set the k3s_token fact for all nodes
+  set_fact: 
+    k3s_token: "{{ k3s_master_token_file.stdout }}"
+  run_once: yes
+
+- debug: msg="k3s master url = {{ k3s_master_url }}, token = {{ k3s_token }}"
+
+###
+# Install agent nodes
+####
+- name: SHELL; execute install script on agent nodes
+  shell: "curl -sfL https://get.k3s.io | K3S_URL={{ k3s_master_url }} K3S_TOKEN={{ k3s_token }} {{ k3s_version | default('') }} sh -s - {{ k3s_docker_flag | default('') }} >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
+  args:
+    warn: false
+  when: inventory_hostname in groups['k3s-agents']
+
