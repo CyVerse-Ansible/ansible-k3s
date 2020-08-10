@@ -1,0 +1,29 @@
+- block: 
+
+  - name: UFW; modify ufw rules for Ubuntu
+    ufw:
+      state: enabled
+      default: deny
+
+  - name: UFW; allow ssh in by default
+    ufw:
+      rule: allow
+      port: ssh
+      proto: tcp
+
+  - name: UFW; allow all traffic between cluster hosts
+    ufw:
+      rule: allow
+      src: "{{ hostvars[item]['ansible_host'] }}"
+    loop: "{{ groups['k3s-cluster'] }}"
+
+  - name: UFW; process any additional ports
+    ufw:
+      port: "{{ item.port }}"
+      rule: "{{ item.rule }}"
+      proto: "{{ item.proto }}"
+      src: "{{ item.src }}"
+    loop: "{{ K3S_FIREWALL_ADD_PORTS }}"
+    when: K3S_FIREWALL_ADD_PORTS is defined
+
+  when: ansible_distribution == "Ubuntu"

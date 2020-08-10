@@ -8,6 +8,8 @@ Requirements
 
 If using Docker with k3s, then this role will depend on Docker already installed or a role that provides it.
 
+This role will setup a firewall (ufw) and by default allow all nodes within the k3s cluster to communicate with each other.
+
 This role makes assumptions in your host files. The following is an example inventory file with k3s-masters, k3s-agents, and k3s-cluster defined, which is the minimum declaration.
 
 Note: At this time, only 1 master is supported
@@ -70,6 +72,7 @@ K3S_POSTGRESQL_PORT | 5432 | port for postgresql db
 K3S_POSTGRESQL_DB   | kubernetes | postgres database name
 K3S_POSTGRESQL_USER | k3suser | db username to K3S_POSTGRESQL_DB
 K3S_POSTGRESQL_PASS | randomly generated | password to use for K3S_POSTGRESQL_USER to access K3S_POSTGRESQL_DB; stored in /opt/k3s after being generated
+K3S_FIREWALL_ADD_PORTS | none | This is an array of dictionaries (see example playbook for examples); each element should have port, rule, proto, and src
 
 Example Playbook
 ----------------
@@ -84,6 +87,15 @@ This is a sample playbook:
     K3S_FORCE_UNINSTALL: true
     K3S_POSTGRESQL_ENABLE: true
     K3S_POSTGRESQL_INSTALL: true
+    K3S_FIREWALL_ADD_PORTS:
+      - port: "8888"
+        rule: "allow"
+        proto: "tcp"
+        src:   "1.2.3.0/24"
+      - port: "443"
+        rule: "deny"
+        proto: "tcp"
+        src:   "any"
 ````
 
 Author Information
