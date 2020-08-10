@@ -22,51 +22,52 @@ This role makes assumptions in your host files. The following is an example inve
 Note: At this time, only 1 master is supported
 
 In .ini format
-    [k3s-masters]
-    w.x.y.z
+````
+[k3s-masters]
+  w.x.y.z
     
-    [k3s-agents]
-    a.b.c.d
-    e.f.g.h
+[k3s-agents]
+  a.b.c.d
+  e.f.g.h
 
-    [k3s-cluster:children]
-    k3s-masters
-    k3s-agents
-
+[k3s-cluster:children]
+  k3s-masters
+  k3s-agents
+````
 In yaml format
 ````
-    all:
+all:
+  hosts:
+    k1:
+      ansible_host: w.x.y.z
+      ansible_user: root
+    k2:
+      ansible_host: a.b.c.d
+      ansible_user: root
+    k3:
+      ansible_host: e.f.g.h
+      ansible_user: root
+  children:
+    k3s-masters:
       hosts:
         k1:
-          ansible_host: w.x.y.z
-          ansible_user: root
+    k3s-agents:
+      hosts:
         k2:
-          ansible_host: a.b.c.d
-          ansible_user: root
         k3:
-          ansible_host: e.f.g.h
-          ansible_user: root
+    k3s-cluster:
       children:
         k3s-masters:
-          hosts:
-            k1:
         k3s-agents:
-          hosts:
-            k2:
-            k3:
-        k3s-cluster:
-          children:
-            k3s-masters:
-            k3s-agents:
 ````
 This is a sample playbook:
-
-    - hosts: k3s-cluster
-      become: true
-      roles:
-        - k3s
-      vars:
-        K3S_FORCE_UNINSTALL: true
-        K3S_POSTGRESQL_ENABLE: true
-        K3S_POSTGRESQL_INSTALL: true
-
+````
+- hosts: k3s-cluster
+  become: true
+  roles:
+    - k3s
+  vars:
+    K3S_FORCE_UNINSTALL: true
+    K3S_POSTGRESQL_ENABLE: true
+    K3S_POSTGRESQL_INSTALL: true
+````
