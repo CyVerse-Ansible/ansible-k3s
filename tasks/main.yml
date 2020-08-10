@@ -9,6 +9,8 @@
 - import_tasks: postgresql.yml
   when: inventory_hostname in groups['k3s-masters'] and K3S_POSTGRESQL_ENABLE is defined and K3S_POSTGRESQL_ENABLE|bool
 
+- import_tasks: firewall.yml
+
 - name: SHELL; uninstall if K3S_FORCE_UNINSTALL; if error, we'll assume it was already uninstalled
   shell: /usr/local/bin/k3s-uninstall.sh
   ignore_errors: true

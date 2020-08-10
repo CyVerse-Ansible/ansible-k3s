@@ -17,6 +17,14 @@
       src: "{{ hostvars[item]['ansible_host'] }}"
     loop: "{{ groups['k3s-cluster'] }}"
 
+  - name: UFW; allow all traffic on cni0 port
+    ufw:
+      rule: allow
+      interface: "cni0"
+      direction: in
+#      src: "{{ hostvars[item]['ansible_cni0'].ipv4.network }}"
+#    loop: "{{ groups['k3s-cluster'] }}"
+
   - name: UFW; process any additional ports
     ufw:
       port: "{{ item.port }}"
