@@ -1,0 +1,10 @@
+# This vars file supports Ubuntu 20.04+
+
+ansible_python_interpreter: /usr/bin/python3
+
+POSTGRESQL_PACKAGES:
+  - postgresql-11
+  - postgresql-client-11
+  - python3-psycopg2
+
+

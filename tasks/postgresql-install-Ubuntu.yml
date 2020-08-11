@@ -10,9 +10,6 @@
 
 - name: APT; update cache and install postgresql server and client
   apt:
-    name:
-      - postgresql-11
-      - postgresql-client-11
-      - python-psycopg2
+    name: "{{ POSTGRESQL_PACKAGES }}"
     state: present
     update_cache: yes

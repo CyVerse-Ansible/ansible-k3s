@@ -1,0 +1,5 @@
+POSTGRESQL_PACKAGES:
+  - postgresql-11
+  - postgresql-client-11
+  - python-psycopg2
+
