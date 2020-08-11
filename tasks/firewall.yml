@@ -20,10 +20,12 @@
   - name: UFW; allow all traffic on cni0 port
     ufw:
       rule: allow
-      interface: "cni0"
+      interface: "{{ item }}"
       direction: in
-#      src: "{{ hostvars[item]['ansible_cni0'].ipv4.network }}"
-#    loop: "{{ groups['k3s-cluster'] }}"
+    loop: 
+      - "cni0"
+      - "docker0"
+      - "flannel.1"
 
   - name: UFW; process any additional ports
     ufw:
