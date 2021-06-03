@@ -72,6 +72,7 @@ K3S_POSTGRESQL_PORT | 5432 | port for postgresql db
 K3S_POSTGRESQL_DB   | kubernetes | postgres database name
 K3S_POSTGRESQL_USER | k3suser | db username to K3S_POSTGRESQL_DB
 K3S_POSTGRESQL_PASS | randomly generated | password to use for K3S_POSTGRESQL_USER to access K3S_POSTGRESQL_DB; stored in /opt/k3s after being generated
+K3S_FIREWALL_MANAGE | false | enables firewall management through this role
 K3S_FIREWALL_ADD_PORTS | none | This is an array of dictionaries (see example playbook for examples); each element should have port, rule, proto, and src
 
 Example Playbook

@@ -36,4 +36,4 @@
     loop: "{{ K3S_FIREWALL_ADD_PORTS }}"
     when: K3S_FIREWALL_ADD_PORTS is defined
 
-  when: ansible_distribution == "Ubuntu" and K3S_FIREWALL_MANAGE is defined and K3S_FIREWALL_MANAGE is true
+  when: ansible_distribution == "Ubuntu" and K3S_FIREWALL_MANAGE is defined and K3S_FIREWALL_MANAGE|bool
