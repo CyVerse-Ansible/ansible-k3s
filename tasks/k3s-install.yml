@@ -16,7 +16,7 @@
 - name: SET_FACT; set k3s_postgresql_env if K3S_POSTGRESQL_ENABLE is defined and true
   set_fact:
     k3s_postgresql_env:  "K3S_DATASTORE_ENDPOINT='postgres://{{ K3S_POSTGRESQL_USER }}:{{ K3S_POSTGRESQL_PASS }}@{{ K3S_POSTGRESQL_HOST }}:{{ K3S_POSTGRESQL_PORT }}/{{ K3S_POSTGRESQL_DB }}'"
-  when: inventory_hostname in groups['k3s-masters'] and K3S_POSTGRESQL_ENABLE is defined and K3S_POSTGRESQL_ENABLE|bool
+  when: inventory_hostname in groups['k3s_masters'] and K3S_POSTGRESQL_ENABLE is defined and K3S_POSTGRESQL_ENABLE|bool
 
 - name: FILE; create /opt/k3s
   file:
@@ -31,18 +31,18 @@
   shell: "curl -sfL https://get.k3s.io | {{ k3s_postgresql_env | default('') }} {{ k3s_version | default('') }} {{ k3s_disable_traefik | default() }} sh -s - {{ k3s_docker_flag | default('') }} >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
   args:
     warn: false
-  when: inventory_hostname in groups['k3s-masters'] and K3S_MASTER_INSTALL is defined and K3S_MASTER_INSTALL|bool
+  when: inventory_hostname in groups['k3s_masters'] and K3S_MASTER_INSTALL is defined and K3S_MASTER_INSTALL|bool
 
 - name: SET_FACT; obtain the k3s_master_ip
   set_fact:
-    k3s_master_ip: "{{ hostvars[groups['k3s-masters'][0]]['ansible_default_ipv4']['address'] }}"
-    k3s_master_url: "https://{{ hostvars[groups['k3s-masters'][0]]['ansible_default_ipv4']['address'] }}:{{ K3S_MASTER_PORT }}"
+    k3s_master_ip: "{{ hostvars[groups['k3s_masters'][0]]['ansible_default_ipv4']['address'] }}"
+    k3s_master_url: "https://{{ hostvars[groups['k3s_masters'][0]]['ansible_default_ipv4']['address'] }}:{{ K3S_MASTER_PORT }}"
 
 - name: SHELL; grab the token from the master
   shell: cat /var/lib/rancher/k3s/server/node-token
   register: k3s_master_token_file
   run_once: yes
-  when: inventory_hostname in groups['k3s-masters']
+  when: inventory_hostname in groups['k3s_masters']
 
 - name: SET_FACT; set the k3s_token fact for all nodes
   set_fact: 
@@ -60,5 +60,5 @@
   shell: "curl -sfL https://get.k3s.io | K3S_URL={{ k3s_master_url }} K3S_TOKEN={{ k3s_token }} {{ k3s_version | default('') }} sh -s - {{ k3s_docker_flag | default('') }} >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
   args:
     warn: false
-  when: groups['k3s-agents'] is defined and inventory_hostname in groups['k3s-agents']
+  when: groups['k3s_agents'] is defined and inventory_hostname in groups['k3s_agents']
 

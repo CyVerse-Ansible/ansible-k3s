@@ -15,7 +15,7 @@
     ufw:
       rule: allow
       src: "{{ hostvars[item]['ansible_host'] }}"
-    loop: "{{ groups['k3s-cluster'] }}"
+    loop: "{{ groups['k3s_cluster'] }}"
 
   - name: UFW; allow all traffic on cni0 port
     ufw:

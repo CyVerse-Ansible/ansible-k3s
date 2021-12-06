@@ -1,7 +1,7 @@
 # Note: currently, this is in a single block for the first master. Later will modify role to support HA masters
 - block:
 
-  - include_tasks: "postgresql-install-{{ hostvars[groups['k3s-masters'][0]].ansible_distribution }}.yml"
+  - include_tasks: "postgresql-install-{{ hostvars[groups['k3s_masters'][0]].ansible_distribution }}.yml"
     when: K3S_POSTGRESQL_INSTALL is defined and K3S_POSTGRESQL_INSTALL|bool
 
   - name: STAT; check if a password has already been writted to /opt/k3s/postgres-{{K3S_POSTGRESQL_USER}}.pass
@@ -40,4 +40,4 @@
       owner: "{{ K3S_POSTGRESQL_USER }}"
     become_user: postgres
 
-  when: inventory_hostname in groups['k3s-masters'][0]
+  when: inventory_hostname in groups['k3s_masters'][0]

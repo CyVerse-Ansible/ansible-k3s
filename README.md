@@ -10,22 +10,22 @@ If using Docker with k3s, then this role will depend on Docker already installed
 
 This role will setup a firewall (ufw) and by default allow all nodes within the k3s cluster to communicate with each other.
 
-This role makes assumptions in your host files. The following is an example inventory file with k3s-masters, k3s-agents, and k3s-cluster defined, which is the minimum declaration.
+This role makes assumptions in your host files. The following is an example inventory file with k3s_masters, k3s_agents, and k3s_cluster defined, which is the minimum declaration.
 
 Note: At this time, only 1 master is supported
 
 In .ini format
 ````
-[k3s-masters]
+[k3s_masters]
   w.x.y.z
     
-[k3s-agents]
+[k3s_agents]
   a.b.c.d
   e.f.g.h
 
-[k3s-cluster:children]
-  k3s-masters
-  k3s-agents
+[k3s_cluster:children]
+  k3s_masters
+  k3s_agents
 ````
 In yaml format
 ````
@@ -41,17 +41,17 @@ all:
       ansible_host: e.f.g.h
       ansible_user: root
   children:
-    k3s-masters:
+    k3s_masters:
       hosts:
         k1:
-    k3s-agents:
+    k3s_agents:
       hosts:
         k2:
         k3:
-    k3s-cluster:
+    k3s_cluster:
       children:
-        k3s-masters:
-        k3s-agents:
+        k3s_masters:
+        k3s_agents:
 ````
 
 Role Variables
@@ -80,7 +80,7 @@ Example Playbook
 
 This is a sample playbook:
 ````
-- hosts: k3s-cluster
+- hosts: k3s_cluster
   become: true
   roles:
     - k3s
