@@ -1,4 +1,4 @@
 POSTGRESQL_PACKAGES:
   - postgresql
-  - postgresql-client
+  - postgresql-server
   - python3-psycopg2
