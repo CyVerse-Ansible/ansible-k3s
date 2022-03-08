@@ -1,7 +1,7 @@
 CyVerse Ansible k3s
 ===================
 
-This role will create a k3s standalone or cluster. 
+This role will create a k3s standalone or cluster.
 
 Requirements
 ------------
@@ -18,7 +18,7 @@ In .ini format
 ````
 [k3s_masters]
   w.x.y.z
-    
+
 [k3s_agents]
   a.b.c.d
   e.f.g.h
@@ -64,6 +64,7 @@ Variable Name | Default value if not defined | Description
 K3S_DOCKER_ENABLE | true | enables the docker engine
 K3S_TRAEFIK_ENABLE | false | disable traefik ingress
 K3S_MASTER_INSTALL | true | reinstall master node(s)
+K3S_MASTER_IP | none | sets the k3s masters ip for when ansible_default_ipv4 is getting an incorrect value
 K3S_MASTER_PORT | 6443 | master node port
 K3S_POSTGRESQL_ENABLE | false | enables the use of postgresql
 K3S_POSTGRESQL_INSTALL | false | enables installation of postgresql on the first k3s master; K3S_POSTGRESQL_ENABLE must be true
@@ -101,4 +102,4 @@ This is a sample playbook:
 
 Author Information
 ------------------
-Edwin Skidmore (edwin@cyverse.org) 
+Edwin Skidmore (edwin@cyverse.org)

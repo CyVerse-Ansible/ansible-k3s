@@ -37,6 +37,13 @@
   set_fact:
     k3s_master_ip: "{{ hostvars[groups['k3s_masters'][0]]['ansible_default_ipv4']['address'] }}"
     k3s_master_url: "https://{{ hostvars[groups['k3s_masters'][0]]['ansible_default_ipv4']['address'] }}:{{ K3S_MASTER_PORT }}"
+  when: K3S_MASTER_IP is not defined
+
+- name: SET_FACT; set the k3s_master_ip based on given value
+  set_fact:
+    k3s_master_ip: "{{ K3S_MASTER_IP }}"
+    k3s_master_url: "https://{{ K3S_MASTER_IP }}:{{ K3S_MASTER_PORT }}"
+  when: K3S_MASTER_IP is defined
 
 - name: SHELL; grab the token from the master
   shell: cat /var/lib/rancher/k3s/server/node-token
@@ -45,12 +52,12 @@
   when: inventory_hostname in groups['k3s_masters']
 
 - name: SET_FACT; set the k3s_token fact for all nodes
-  set_fact: 
+  set_fact:
     k3s_token: "{{ k3s_master_token_file.stdout }}"
   run_once: yes
 
 - name: DEBUG; print master url and token
-  debug: 
+  debug:
     msg: "k3s master url = {{ k3s_master_url }}, token = {{ k3s_token }}"
 
 ###
@@ -61,4 +68,3 @@
   args:
     warn: false
   when: groups['k3s_agents'] is defined and inventory_hostname in groups['k3s_agents']
-
