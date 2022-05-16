@@ -10,8 +10,37 @@
 
 - name: SET_FACT; set k3s_disable_traefik if K3S_TRAEFIK_ENABLE is undefined or false
   set_fact:
-    k3s_disable_traefik:  "INSTALL_K3S_EXEC=\"--disable traefik\""
+    k3s_disable_traefik:  "--disable traefik"
   when: K3S_TRAEFIK_ENABLE is undefined or not K3S_TRAEFIK_ENABLE|bool
+
+- name: SET_FACT; set k3s_calico_enable if K3S_CALICO_ENABLE is true
+  set_fact:
+    k3s_calico_enable:  "--flannel-backend=none --disable-network-policy"
+  when: K3S_CALICO_ENABLE is defined and K3S_CALICO_ENABLE|bool
+
+- name: SET_FACT; set k3s_token if K3S_CLUSTER_TOKEN is set
+  set_fact:
+    k3s_token:  "K3S_TOKEN=\"{{ K3S_CLUSTER_TOKEN }}\""
+  when: K3S_CLUSTER_TOKEN is defined
+
+- name: SET_FACT; set k3s_cluster_cidr if K3S_CLUSTER_CIDR is set
+  set_fact:
+    k3s_cluster_cidr:  "--cluster-cidr=\"{{ K3S_CLUSTER_CIDR }}\""
+  when: K3S_CLUSTER_CIDR is defined
+
+# - name: SET_FACT; set k3s_servicelb_disable if K3S_SERVICELB_DISABLE is true
+#   set_fact:
+#     k3s_servicelb_disable:  "--disable servicelb"
+#   when: K3S_SERVICELB_DISABLE|bool == true
+
+- name: SET_FACT; set install_k3s_exec
+  set_fact:
+    # install_k3s_exec:  "INSTALL_K3S_EXEC=\"{{ k3s_disable_traefik | default('') }} {{ k3s_servicelb_disable | default('') }} --cluster-cidr=172.42.0.0/16 --service-cidr=172.43.0.0/16 --cluster-dns=172.43.0.10\""
+    # install_k3s_exec:  "INSTALL_K3S_EXEC=\"{{ k3s_disable_traefik | default('') }} {{ k3s_servicelb_disable | default('') }}\""
+    #install_k3s_exec:  "INSTALL_K3S_EXEC=\" {{ k3s_disable_traefik | default('') }} {{ k3s_calico_enable | default('') }} \""
+    install_k3s_master_exec:  "INSTALL_K3S_EXEC=\"{{ k3s_disable_traefik | default('') }} {{ k3s_calico_enable | default('') }} {{ k3s_cluster_cidr | default('') }}\""
+    install_k3s_worker_exec:  "INSTALL_K3S_EXEC=\"{{ k3s_calico_enable | default('') }}\""
+
 
 - name: SET_FACT; set k3s_postgresql_env if K3S_POSTGRESQL_ENABLE is defined and true
   set_fact:
@@ -52,7 +81,7 @@
 #   when: inventory_hostname in groups['k3s_masters'] and K3S_MASTER_INSTALL is defined and K3S_MASTER_INSTALL|bool
 
 - name: SHELL; execute install script on master nodes first
-  shell: "{{ k3s_postgresql_env | default('') }} {{ k3s_version | default('') }} {{ k3s_disable_traefik | default() }} /opt/k3s/k3s_install.sh {{ k3s_docker_flag | default('') }} >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
+  shell: "K3S_KUBECONFIG_MODE=\"644\" {{ k3s_postgresql_env | default('') }} {{ k3s_version | default('') }} {{ install_k3s_master_exec }} {{ k3s_token | default('') }} /opt/k3s/k3s_install.sh {{ k3s_docker_flag | default('') }} >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
   args:
     warn: false
   when: inventory_hostname in groups['k3s_masters'] and K3S_MASTER_INSTALL is defined and K3S_MASTER_INSTALL|bool
@@ -69,26 +98,36 @@
     k3s_master_url: "https://{{ K3S_MASTER_IP }}:{{ K3S_MASTER_PORT }}"
   when: K3S_MASTER_IP is defined
 
-- name: SHELL; grab the token from the master
-  shell: cat /var/lib/rancher/k3s/server/node-token
-  register: k3s_master_token_file
-  run_once: true
-  when: inventory_hostname in groups['k3s_masters']
+- block:
+  - name: SHELL; grab the token from the master
+    shell: cat /var/lib/rancher/k3s/server/node-token
+    register: k3s_master_token_file
+    when: inventory_hostname in groups['k3s_masters']
 
-- name: SET_FACT; set the k3s_token fact for all nodes
-  set_fact:
-    k3s_token: "{{ k3s_master_token_file.stdout }}"
+  - name: SET_FACT; set the k3s_token fact for all nodes
+    set_fact:
+      k3s_token: "K3S_TOKEN=\"{{ k3s_master_token_file.stdout }}\""
+  when: K3S_CLUSTER_TOKEN is undefined
   run_once: true
+
 
 - name: DEBUG; print master url and token
   debug:
     msg: "k3s master url = {{ k3s_master_url }}, token = {{ k3s_token }}"
 
+- block:
+    - name: SHELL; install tigera calico operator
+      shell: k3s kubectl create -f https://projectcalico.docs.tigera.io/manifests/tigera-operator.yaml
+    
+    - name: SHELL; install tigera calico CRDS
+      shell: kubectl create -f https://projectcalico.docs.tigera.io/manifests/custom-resources.yaml
+  when: K3S_CALICO_ENABLE is defined and K3S_CALICO_ENABLE|bool
+
 ###
 # Install agent nodes
 ####
 - name: SHELL; execute install script on agent nodes
-  shell: "K3S_URL={{ k3s_master_url }} K3S_TOKEN={{ k3s_token }} {{ k3s_version | default('') }} /opt/k3s/k3s_install.sh {{ k3s_docker_flag | default('') }} >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
+  shell: "K3S_URL={{ k3s_master_url }} {{ k3s_token }} {{ k3s_version | default('') }} {{ install_k3s_worker_exec }} /opt/k3s/k3s_install.sh {{ k3s_docker_flag | default('') }} >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
   args:
     warn: false
   when: groups['k3s_agents'] is defined and inventory_hostname in groups['k3s_agents']

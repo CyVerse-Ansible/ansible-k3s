@@ -63,6 +63,10 @@ Variable Name | Default value if not defined | Description
 ------------- | ---------------------- | -----------
 K3S_DOCKER_ENABLE | true | enables the docker engine
 K3S_TRAEFIK_ENABLE | false | disable traefik ingress
+K3S_CALICO_ENABLE  (not working) | false | enable calico
+K3S_CLUSTER_TOKEN | none | if set, the cluster will be initialized to this token, rather than randomly generated
+K3S_CLUSTER_CIDR | none | if set, cidr for cluster e.g. 192.168.0.0/16
+K3S_VERSION | none | if set, will attempt to set the k3s version
 K3S_MASTER_INSTALL | true | reinstall master node(s)
 K3S_MASTER_IP | none | sets the k3s masters ip for when ansible_default_ipv4 is getting an incorrect value
 K3S_MASTER_PORT | 6443 | master node port
