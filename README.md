@@ -63,6 +63,7 @@ Variable Name | Default value if not defined | Description
 ------------- | ---------------------- | -----------
 K3S_DOCKER_ENABLE | true | enables the docker engine
 K3S_TRAEFIK_ENABLE | false | disable traefik ingress
+K3s_FLANNEL_BACKEND | none | if set, it will pass the value to --flannel-backend=
 K3S_CALICO_ENABLE  (not working) | false | enable calico
 K3S_CLUSTER_TOKEN | none | if set, the cluster will be initialized to this token, rather than randomly generated
 K3S_CLUSTER_CIDR | none | if set, cidr for cluster e.g. 192.168.0.0/16
