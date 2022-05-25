@@ -1,0 +1,36 @@
+- block: # this block for docker
+  - name: HELM_REPOSITORY; add nvdp as https://nvidia.github.io/k8s-device-plugin
+    kubernetes.core.helm_repository:
+      name: nvdp
+      repo_url: https://nvidia.github.io/k8s-device-plugin
+
+  - name: HELM_REPOSITORY; add nvgfd as https://nvidia.github.io/gpu-feature-discovery
+    kubernetes.core.helm_repository:
+      name: nvgfd
+      repo_url: https://nvidia.github.io/gpu-feature-discovery
+
+  - name: SHELL; helm repo update
+    shell: helm repo update
+
+  # TODO investigate if "helm install --generate-name --set migStrategy=none nvdp/nvidia-device-plugin"
+  - name: SHELL; install nvdp/nvidia-device-plugin
+    shell: helm upgrade --install --set migStrategy=none nvidia-device-plugin nvdp/nvidia-device-plugin
+
+  # TODO investigate if "helm install --generate-name --set migStrategy=none nvgfd/gpu-feature-discovery"
+  - name: SHELL; install nvgfd/gpu-feature-discovery
+    shell: helm upgrade --install --set migStrategy=none gpu-feature-discovery nvgfd/gpu-feature-discovery
+  when: K3S_DOCKER_ENABLE|bool
+
+- block: # this block for containerd (not docker), installs the nvidia operator
+  - name: HELM_REPOSITORY; add nvidia as https://nvidia.github.io/gpu-operator
+    kubernetes.core.helm_repository:
+      name: nvidia
+      repo_url: https://nvidia.github.io/gpu-operator
+
+  - name: SHELL; helm repo update
+    shell: helm repo update
+
+  - name: SHELL; install nvidia/gpu-operator
+    shell: helm install --wait --generate-name nvidia/gpu-operator --set operator.defaultRuntime=containerd --set driver.enabled=false --set toolkit.enabled=false
+  when: not K3S_DOCKER_ENABLE|bool
+

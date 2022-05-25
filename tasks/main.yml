@@ -33,6 +33,43 @@
   #     state: present
   when: K3S_IS_MULTINODE|bool 
 
+# this is only necessary if K3S_GPU_ENABLE
+- block:
+  - name: FILE; ensure /etc/containerd exists
+    file:
+      path: /etc/containerd
+      state: directory
+      mode: "0777"
+
+  - name: TEMPLATE; create /etc/containerd/config.toml
+    template:
+      src: containerd-config.toml.j2
+      dest:  /etc/containerd/config.toml
+      mode: 0644
+    register: containerd_toml
+
+  - name: SYSTEMD; restart containerd, only if containerd_toml changed
+    systemd:
+      name: containerd
+      state: restarted
+    when: containerd_toml.changed
+
+  - block: 
+    - name: TEMPLATE; /etc/docker/daemon.json
+      template:
+        src: docker-daemon.json.j2
+        dest: /etc/docker/daemon.json
+        mode: 0644
+      register: docker_daemon_json
+
+    - name: SYSTEMD; restart docker, only containerd_toml changed as well (jic) or docker_daemon_json
+      systemd:
+        name: docker
+        state: restarted
+        daemon_reload: yes
+      when: containerd_toml.changed or docker_daemon_json.changed
+    when: K3S_DOCKER_ENABLE|bool
+  when: K3S_GPU_ENABLE|bool
 
 - name: FILE; create /opt/k3s to be used for install log and passwords, if relevant
   file:
@@ -50,4 +87,18 @@
   ignore_errors: true
   when: inventory_hostname in groups['k3s_cluster'] and K3S_FORCE_UNINSTALL is defined and K3S_FORCE_UNINSTALL|bool
 
+# helm is needed for some services
+- block:
+  - name: SHELL; locate helm binary
+    shell: 
+      cmd: command -v helm
+    register: helm_found
+    ignore_errors: true
+
+  - name: SHELL; install helm, if not found
+    shell:
+      cmd: curl https://raw.githubusercontent.com/helm/helm/HEAD/scripts/get-helm-3 | bash
+    when: helm_found is failed
+  when: inventory_hostname in groups['k3s_masters']
+  
 - import_tasks: k3s-install.yml
