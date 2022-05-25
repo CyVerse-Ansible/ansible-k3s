@@ -6,6 +6,34 @@
     - "{{ ansible_distribution }}.yml"
     - "{{ ansible_os_family }}.yml"
 
+# this sets up preliminary settings for multinode k3s
+- block:
+  - name: SYSCTL; enable forwarding ipv4
+    sysctl:
+      name: net.ipv4.ip_forward
+      value: 1
+      state: present
+
+  - name: SYSCTL; enable forwarding ipv6
+    sysctl:
+      name: net.ipv4.ip_forward
+      value: 1
+      state: present
+
+  # - name: SYSCTL; enable net.bridge.bridge-nf-call-iptables
+  #   sysctl:
+  #     name: net.bridge.bridge-nf-call-iptables
+  #     value: 1
+  #     state: present
+
+  # - name: SYSCTL; net.bridge.bridge-nf-call-ip6tables
+  #   sysctl:
+  #     name: net.bridge.bridge-nf-call-ip6tables
+  #     value: 1
+  #     state: present
+  when: K3S_IS_MULTINODE|bool 
+
+
 - name: FILE; create /opt/k3s to be used for install log and passwords, if relevant
   file:
     path: /opt/k3s
