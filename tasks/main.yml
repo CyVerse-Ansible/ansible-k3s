@@ -6,6 +6,16 @@
     - "{{ ansible_distribution }}.yml"
     - "{{ ansible_os_family }}.yml"
 
+- name: SET_FACT; K3S_DOCKER_ENABLE = false if ubuntu 22 or newer
+  set_fact:
+    K3S_DOCKER_ENABLE: false
+  when: K3S_DOCKER_ENABLE is not defined and ansible_distribution  == "Ubuntu" and ansible_distribution_major_version | int <= 22
+
+- name: SET_FACT; K3S_DOCKER_ENABLE = true otherwise
+  set_fact:
+    K3S_DOCKER_ENABLE: true
+  when: K3S_DOCKER_ENABLE is not defined and not (ansible_distribution  == "Ubuntu" and ansible_distribution_major_version | int <= 22)
+
 # this sets up preliminary settings for multinode k3s
 - block:
   - name: SYSCTL; enable forwarding ipv4
@@ -31,7 +41,7 @@
   #     name: net.bridge.bridge-nf-call-ip6tables
   #     value: 1
   #     state: present
-  when: K3S_IS_MULTINODE|bool 
+  when: K3S_IS_MULTINODE|bool
 
 # this is only necessary if K3S_GPU_ENABLE
 - block:
@@ -54,7 +64,7 @@
       state: restarted
     when: containerd_toml.changed
 
-  - block: 
+  - block:
     - name: TEMPLATE; /etc/docker/daemon.json
       template:
         src: docker-daemon.json.j2
@@ -90,7 +100,7 @@
 # helm is needed for some services
 - block:
   - name: SHELL; locate helm binary
-    shell: 
+    shell:
       cmd: command -v helm
     register: helm_found
     ignore_errors: true
@@ -100,5 +110,5 @@
       cmd: curl https://raw.githubusercontent.com/helm/helm/HEAD/scripts/get-helm-3 | bash
     when: helm_found is failed
   when: inventory_hostname in groups['k3s_masters']
-  
+
 - import_tasks: k3s-install.yml
