@@ -61,7 +61,7 @@ The following table lists optional ansible variables along with the default valu
 
 Variable Name | Default value if not defined | Description
 ------------- | ---------------------- | -----------
-K3S_DOCKER_ENABLE | true | enables the docker engine
+K3S_DOCKER_ENABLE | version_dependent | enables the docker engine if not set will be true unless the os version is ubuntu2204 or newer
 K3S_GPU_ENABLE | false | enables nvidia gpu driver
 K3S_TRAEFIK_ENABLE | false | disable traefik ingress
 K3s_FLANNEL_BACKEND | none | if set, it will pass the value to --flannel-backend=
