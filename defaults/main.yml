@@ -16,3 +16,4 @@ K3S_POSTGRESQL_DB:      "kubernetes"
 K3S_POSTGRESQL_USER:    "k3suser"
 
 K3S_CALICO_ENABLE: false
+K3S_TLS_SAN_ADD_PUBLIC_IP: false

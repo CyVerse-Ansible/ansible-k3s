@@ -82,6 +82,7 @@ K3S_POSTGRESQL_USER | k3suser | db username to K3S_POSTGRESQL_DB
 K3S_POSTGRESQL_PASS | randomly generated | password to use for K3S_POSTGRESQL_USER to access K3S_POSTGRESQL_DB; stored in /opt/k3s after being generated
 K3S_FIREWALL_MANAGE | false | enables firewall management through this role
 K3S_FIREWALL_ADD_PORTS | none | This is an array of dictionaries (see example playbook for examples); each element should have port, rule, proto, and src
+K3S_TLS_SAN_ADD_PUBLIC_IP | false | If enabled, this will add the public ip for each master |
 
 Example Playbook
 ----------------
@@ -106,6 +107,23 @@ This is a sample playbook:
         proto: "tcp"
         src:   "any"
 ````
+
+Miscellany
+----------
+
+This playbook will add labels to nodes, which can be used for node selection:
+
+To the masters: `cyverse.org/k3s-master=true`
+
+For each master, this role will index based on position in the inventory, 0 index: `cyverse.org/k3s-master-index=n`
+
+To the agents: `cyverse.org/k3s-agent=true`
+
+For each agent, this role will index based on position in the inventory, 0 index: `cyverse.org/k3s-agent-index=n`
+
+This playbook will add taints to the following nodes:
+
+To the masters (for platform components or key dependencies only): `cyverse.org/platform=true:PreferNoSchedule`
 
 Author Information
 ------------------

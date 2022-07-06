@@ -33,6 +33,11 @@
     k3s_cluster_cidr:  "--cluster-cidr=\"{{ K3S_CLUSTER_CIDR }}\""
   when: K3S_CLUSTER_CIDR is defined
 
+- name: SET_FACT; set k3s_tls_san if K3S_TLS_SAN_ADD_PUBLIC_IP is set
+  set_fact:
+    k3s_tls_san:  "--k3s_tls_san=\"{{ ansible_host }}\""
+  when: K3S_TLS_SAN_ADD_PUBLIC_IP is defined and K3S_TLS_SAN_ADD_PUBLIC_IP|bool
+
 # - name: SET_FACT; set k3s_servicelb_disable if K3S_SERVICELB_DISABLE is true
 #   set_fact:
 #     k3s_servicelb_disable:  "--disable servicelb"
@@ -40,7 +45,7 @@
 
 - name: SET_FACT; set install_k3s_exec
   set_fact:
-    install_k3s_master_exec:  "INSTALL_K3S_EXEC=\"{{ k3s_disable_traefik | default('') }} {{ k3s_calico_enable | default('') }} {{ k3s_cluster_cidr | default('') }} {{ k3s_flannel_backend | default('') }}\""
+    install_k3s_master_exec:  "INSTALL_K3S_EXEC=\"{{ k3s_tls_san | default('') }} {{ k3s_disable_traefik | default('') }} {{ k3s_calico_enable | default('') }} {{ k3s_cluster_cidr | default('') }} {{ k3s_flannel_backend | default('') }}\""
     install_k3s_worker_exec:  "INSTALL_K3S_EXEC=\"{{ k3s_calico_enable | default('') }}\""
 
 - name: SET_FACT; set k3s_postgresql_env if K3S_POSTGRESQL_ENABLE is defined and true
@@ -94,6 +99,18 @@
     k3s_master_url: "https://{{ K3S_MASTER_IP }}:{{ K3S_MASTER_PORT }}"
   when: K3S_MASTER_IP is defined
 
+- name: SHELL; add label cacao.io/k3s-master=true to all masters
+  shell: "kubectl label node --overwrite=true {{ inventory_hostname }} cyverse.org/k3s-master=true"
+  when: inventory_hostname in groups['k3s_masters'] 
+  delegate_to: "{{ groups['k3s_masters'][0] }}"
+
+- name: SHELL; add index cyverse.org/k3s-master-index=n for each master
+  shell: "kubectl label node --overwrite=true {{ groups['k3s_masters'][idx] }} cyverse.org/k3s-master-index={{ idx }}"
+  loop: "{{ groups['k3s_masters'] }}"
+  loop_control:
+    index_var: idx
+  delegate_to: "{{ groups['k3s_masters'][0] }}"
+
 - block:
   - name: SHELL; grab the token from the master
     shell: cat /var/lib/rancher/k3s/server/node-token
@@ -125,8 +142,26 @@
 ###
 # Install agent nodes
 ####
-- name: SHELL; execute install script on agent nodes
-  shell: "K3S_URL={{ k3s_master_url }} {{ k3s_token }} {{ k3s_version | default('') }} {{ install_k3s_worker_exec }} /opt/k3s/k3s_install.sh {{ k3s_docker_flag | default('') }} >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
-  args:
-    warn: false
+- block:
+  - name: SHELL; execute install script on agent nodes
+    shell: "K3S_URL={{ k3s_master_url }} {{ k3s_token }} {{ k3s_version | default('') }} {{ install_k3s_worker_exec }} /opt/k3s/k3s_install.sh {{ k3s_docker_flag | default('') }} >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
+    args:
+      warn: false
+
+  # labels may fail because it take a little before agent nodes show up in the metadata
+  - name: SHELL; add label cacao.io/k3s-agent=true to all agent
+    shell: "kubectl label node --overwrite=true {{ inventory_hostname }} cyverse.org/k3s-agent=true"
+    delegate_to: "{{ groups['k3s_masters'][0] }}"
+    retries: 60
+    delay: 5
+    register: result
+    until: result.rc == 0
   when: groups['k3s_agents'] is defined and inventory_hostname in groups['k3s_agents']
+
+- name: SHELL; add index cyverse.org/k3s-agent-index=n for each agent
+  shell: "kubectl label node --overwrite=true {{ groups['k3s_agents'][idx] }} cyverse.org/k3s-agent-index={{ idx }}"
+  loop: "{{ groups['k3s_agents'] }}"
+  loop_control:
+    index_var: idx
+  delegate_to: "{{ groups['k3s_masters'][0] }}"
+  when: groups['k3s_agents'] is defined
