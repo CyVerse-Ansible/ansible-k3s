@@ -1,0 +1,18 @@
+write-kubeconfig-mode: "0644"
+{% if K3S_VERSION is defined %}
+INSTALL_K3S_VERSION: "{{ K3S_VERSION }}"
+{% endif %}
+{% if K3S_DOCKER_ENABLE is defined and K3S_DOCKER_ENABLE|bool %}
+docker:" {{ K3S_DOCKER_ENABLE }}"
+{% endif %}
+{% if K3S_CLUSTER_TOKEN is undefined %}
+token value, -t: "{{ k3s_master_token_file.stdout }}"
+{% endif %}
+{% if K3S_CLUSTER_TOKEN is defined %}
+token value, -t: "{{ K3S_CLUSTER_TOKEN }}"
+{% endif %}
+{% if K3S_CALICO_ENABLE is defined and K3S_CALICO_ENABLE|bool %}
+flannel-backend: none
+disable-network-policy: true
+{% endif %}
+K3S_URL={{ k3s_master_url }}
