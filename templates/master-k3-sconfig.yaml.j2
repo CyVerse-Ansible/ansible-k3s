@@ -2,14 +2,11 @@ write-kubeconfig-mode: "0644"
 {% if inventory_hostname in groups['k3s_masters'] and K3S_POSTGRESQL_ENABLE is defined and K3S_POSTGRESQL_ENABLE|bool %}
 datastore-endpoint: "postgres://{{ K3S_POSTGRESQL_USER }}:{{ K3S_POSTGRESQL_PASS }}@{{ K3S_POSTGRESQL_HOST }}:{{ K3S_POSTGRESQL_PORT }}/{{ K3S_POSTGRESQL_DB }}"
 {% endif %}
-{% if K3S_VERSION is defined %}
-INSTALL_K3S_VERSION: "{{ K3S_VERSION }}"
-{% endif %}
 {% if K3S_DOCKER_ENABLE is defined and K3S_DOCKER_ENABLE|bool %}
 docker: "{{ K3S_DOCKER_ENABLE }}"
 {% endif %}
 {% if K3S_CLUSTER_TOKEN is defined %}
-token value, -t: "{{ K3S_CLUSTER_TOKEN }}"
+token: "{{ K3S_CLUSTER_TOKEN }}"
 {% endif %}
 {% if K3S_TRAEFIK_ENABLE is undefined or not K3S_TRAEFIK_ENABLE|bool %}
 k3s_disable_traefik: true

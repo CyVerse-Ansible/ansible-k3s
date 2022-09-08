@@ -116,7 +116,7 @@
   - name: SET_FACT; set the k3s_token fact for all nodes
     set_fact:
       k3s_token: "K3S_TOKEN=\"{{ k3s_master_token_file.stdout }}\""
-  when: K3S_CLUSTER_TOKEN is undefined
+  # when: K3S_CLUSTER_TOKEN is undefined
   # run_once: true
 
 - name: DEBUG; print master url and token
@@ -137,14 +137,14 @@
 ###
 # Install agent nodes
 ####
-- name: create the k3s master config
+- name: create the k3s agent config
   ansible.builtin.template:
-    src: agent-k3-sconfig.yaml.j2
+    src: agent-k3s-config.yaml.j2
     dest: /etc/rancher/k3s/config.yaml
   when: groups['k3s_agents'] is defined and inventory_hostname in groups['k3s_agents']
 
 - name: SHELL; execute install script on agent nodes
-  shell: "/opt/k3s/k3s_install.sh >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
+  shell: "K3S_URL={{ k3s_master_url }} {{ k3s_token }} {{ k3s_version | default('') }} /opt/k3s/k3s_install.sh >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
   args:
     warn: false
   when: groups['k3s_agents'] is defined and inventory_hostname in groups['k3s_agents']
