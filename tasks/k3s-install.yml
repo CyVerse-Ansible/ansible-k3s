@@ -3,50 +3,50 @@
     k3s_version: "INSTALL_K3S_VERSION={{ K3S_VERSION }}"
   when: K3S_VERSION is defined
 
-- name: SET_FACT; set k3s_docker_flag only if K3S_DOCKER_ENABLE is defined and true
-  set_fact:
-    k3s_docker_flag:  "--docker"
-  when: K3S_DOCKER_ENABLE is defined and K3S_DOCKER_ENABLE|bool
-
-- name: SET_FACT; set k3s_disable_traefik if K3S_TRAEFIK_ENABLE is undefined or false
-  set_fact:
-    k3s_disable_traefik:  "--disable traefik --disable-network-policy"
-  when: K3S_TRAEFIK_ENABLE is undefined or not K3S_TRAEFIK_ENABLE|bool
-
-- name: SET_FACT; set k3s_flannel_backend if K3s_FLANNEL_BACKEND is defined
-  set_fact:
-    k3s_flannel_backend:  "--flannel-backend={{ K3s_FLANNEL_BACKEND }}"
-  when: K3s_FLANNEL_BACKEND is defined
-
-- name: SET_FACT; set k3s_calico_enable if K3S_CALICO_ENABLE is true
-  set_fact:
-    k3s_calico_enable:  "--flannel-backend=none --disable-network-policy"
-  when: K3S_CALICO_ENABLE is defined and K3S_CALICO_ENABLE|bool
-
-- name: SET_FACT; set k3s_token if K3S_CLUSTER_TOKEN is set
-  set_fact:
-    k3s_token:  "K3S_TOKEN=\"{{ K3S_CLUSTER_TOKEN }}\""
-  when: K3S_CLUSTER_TOKEN is defined
-
-- name: SET_FACT; set k3s_cluster_cidr if K3S_CLUSTER_CIDR is set
-  set_fact:
-    k3s_cluster_cidr:  "--cluster-cidr=\"{{ K3S_CLUSTER_CIDR }}\""
-  when: K3S_CLUSTER_CIDR is defined
+# - name: SET_FACT; set k3s_docker_flag only if K3S_DOCKER_ENABLE is defined and true
+#   set_fact:
+#     k3s_docker_flag:  "--docker"
+#   when: K3S_DOCKER_ENABLE is defined and K3S_DOCKER_ENABLE|bool
+#
+# - name: SET_FACT; set k3s_disable_traefik if K3S_TRAEFIK_ENABLE is undefined or false
+#   set_fact:
+#     k3s_disable_traefik:  "--disable traefik --disable-network-policy"
+#   when: K3S_TRAEFIK_ENABLE is undefined or not K3S_TRAEFIK_ENABLE|bool
+#
+# - name: SET_FACT; set k3s_flannel_backend if K3s_FLANNEL_BACKEND is defined
+#   set_fact:
+#     k3s_flannel_backend:  "--flannel-backend={{ K3s_FLANNEL_BACKEND }}"
+#   when: K3s_FLANNEL_BACKEND is defined
+#
+# - name: SET_FACT; set k3s_calico_enable if K3S_CALICO_ENABLE is true
+#   set_fact:
+#     k3s_calico_enable:  "--flannel-backend=none --disable-network-policy"
+#   when: K3S_CALICO_ENABLE is defined and K3S_CALICO_ENABLE|bool
+#
+# - name: SET_FACT; set k3s_token if K3S_CLUSTER_TOKEN is set
+#   set_fact:
+#     k3s_token:  "K3S_TOKEN=\"{{ K3S_CLUSTER_TOKEN }}\""
+#   when: K3S_CLUSTER_TOKEN is defined
+#
+# - name: SET_FACT; set k3s_cluster_cidr if K3S_CLUSTER_CIDR is set
+#   set_fact:
+#     k3s_cluster_cidr:  "--cluster-cidr=\"{{ K3S_CLUSTER_CIDR }}\""
+#   when: K3S_CLUSTER_CIDR is defined
 
 # - name: SET_FACT; set k3s_servicelb_disable if K3S_SERVICELB_DISABLE is true
 #   set_fact:
 #     k3s_servicelb_disable:  "--disable servicelb"
 #   when: K3S_SERVICELB_DISABLE|bool == true
 
-- name: SET_FACT; set install_k3s_exec
-  set_fact:
-    install_k3s_master_exec:  "INSTALL_K3S_EXEC=\"{{ k3s_disable_traefik | default('') }} {{ k3s_calico_enable | default('') }} {{ k3s_cluster_cidr | default('') }} {{ k3s_flannel_backend | default('') }}\""
-    install_k3s_worker_exec:  "INSTALL_K3S_EXEC=\"{{ k3s_calico_enable | default('') }}\""
-
-- name: SET_FACT; set k3s_postgresql_env if K3S_POSTGRESQL_ENABLE is defined and true
-  set_fact:
-    k3s_postgresql_env:  "K3S_DATASTORE_ENDPOINT='postgres://{{ K3S_POSTGRESQL_USER }}:{{ K3S_POSTGRESQL_PASS }}@{{ K3S_POSTGRESQL_HOST }}:{{ K3S_POSTGRESQL_PORT }}/{{ K3S_POSTGRESQL_DB }}'"
-  when: inventory_hostname in groups['k3s_masters'] and K3S_POSTGRESQL_ENABLE is defined and K3S_POSTGRESQL_ENABLE|bool
+# - name: SET_FACT; set install_k3s_exec
+#   set_fact:
+#     install_k3s_master_exec:  "INSTALL_K3S_EXEC=\"{{ k3s_disable_traefik | default('') }} {{ k3s_calico_enable | default('') }} {{ k3s_cluster_cidr | default('') }} {{ k3s_flannel_backend | default('') }}\""
+#     install_k3s_worker_exec:  "INSTALL_K3S_EXEC=\"{{ k3s_calico_enable | default('') }}\""
+#
+# - name: SET_FACT; set k3s_postgresql_env if K3S_POSTGRESQL_ENABLE is defined and true
+#   set_fact:
+#     k3s_postgresql_env:  "K3S_DATASTORE_ENDPOINT='postgres://{{ K3S_POSTGRESQL_USER }}:{{ K3S_POSTGRESQL_PASS }}@{{ K3S_POSTGRESQL_HOST }}:{{ K3S_POSTGRESQL_PORT }}/{{ K3S_POSTGRESQL_DB }}'"
+#   when: inventory_hostname in groups['k3s_masters'] and K3S_POSTGRESQL_ENABLE is defined and K3S_POSTGRESQL_ENABLE|bool
 
 - name: FILE; create /opt/k3s
   file:
@@ -57,7 +57,7 @@
 # This local action was added to prevent ddos k3s download if we had 100s of vms. If this becomes problematic, we can change this approach to an option
 # The actual download ~27K and should be very fast to transfer locally (as of 5/13/2022)
 - name: LOCAL_ACTION; download the k3s installer once for everyone
-  local_action: 
+  local_action:
     module: shell
     cmd: curl -sfL -o /tmp/k3s_install.sh https://get.k3s.io
     args:
@@ -75,9 +75,21 @@
 ###
 # Install master node
 ###
+- name: Create the /etc/rancher/k3s directory
+  ansible.builtin.file:
+    path: /etc/rancher/k3s
+    owner: root
+    group: root
+    state: directory
+
+- name: create the k3s master config
+  ansible.builtin.template:
+    src: master-k3-sconfig.yaml.j2
+    dest: /etc/rancher/k3s/config.yaml
+  when: inventory_hostname in groups['k3s_masters'] and K3S_MASTER_INSTALL is defined and K3S_MASTER_INSTALL|bool
 
 - name: SHELL; execute install script on master nodes first
-  shell: "K3S_KUBECONFIG_MODE=\"644\" {{ k3s_postgresql_env | default('') }} {{ k3s_version | default('') }} {{ install_k3s_master_exec }} {{ k3s_token | default('') }} /opt/k3s/k3s_install.sh {{ k3s_docker_flag | default('') }} >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
+  shell: "{{ k3s_version | default('') }} /opt/k3s/k3s_install.sh >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
   args:
     warn: false
   when: inventory_hostname in groups['k3s_masters'] and K3S_MASTER_INSTALL is defined and K3S_MASTER_INSTALL|bool
@@ -104,7 +116,7 @@
   - name: SET_FACT; set the k3s_token fact for all nodes
     set_fact:
       k3s_token: "K3S_TOKEN=\"{{ k3s_master_token_file.stdout }}\""
-  when: K3S_CLUSTER_TOKEN is undefined
+  # when: K3S_CLUSTER_TOKEN is undefined
   # run_once: true
 
 - name: DEBUG; print master url and token
@@ -113,20 +125,26 @@
 
 - name: SHELL; install calico
   shell: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
-  when: 
+  when:
   - inventory_hostname in groups['k3s_masters']
   - K3S_CALICO_ENABLE is defined and K3S_CALICO_ENABLE|bool
 
 - import_tasks: k3s-install-gpu-nvidia-drivers.yml
   when: inventory_hostname in groups['k3s_masters'] and K3S_GPU_ENABLE|bool
-  environment: 
+  environment:
     KUBECONFIG: "/etc/rancher/k3s/k3s.yaml"
 
 ###
 # Install agent nodes
 ####
+- name: create the k3s agent config
+  ansible.builtin.template:
+    src: agent-k3s-config.yaml.j2
+    dest: /etc/rancher/k3s/config.yaml
+  when: groups['k3s_agents'] is defined and inventory_hostname in groups['k3s_agents']
+
 - name: SHELL; execute install script on agent nodes
-  shell: "K3S_URL={{ k3s_master_url }} {{ k3s_token }} {{ k3s_version | default('') }} {{ install_k3s_worker_exec }} /opt/k3s/k3s_install.sh {{ k3s_docker_flag | default('') }} >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
+  shell: "K3S_URL={{ k3s_master_url }} {{ k3s_token }} {{ k3s_version | default('') }} /opt/k3s/k3s_install.sh >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
   args:
     warn: false
   when: groups['k3s_agents'] is defined and inventory_hostname in groups['k3s_agents']
