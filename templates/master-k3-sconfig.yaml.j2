@@ -22,3 +22,6 @@ flannel-backend: "{{ K3s_FLANNEL_BACKEND }}"
 flannel-backend: none
 disable-network-policy: true
 {% endif %}
+kubelet-arg:
+  - "runtime-request-timeout=30m"
+#  - "image-pull-progress-deadline=60m"
