@@ -8,8 +8,9 @@ docker: "{{ K3S_DOCKER_ENABLE }}"
 {% if K3S_CLUSTER_TOKEN is defined %}
 token: "{{ K3S_CLUSTER_TOKEN }}"
 {% endif %}
+
 {% if K3S_TRAEFIK_ENABLE is undefined or not K3S_TRAEFIK_ENABLE|bool %}
-k3s_disable_traefik: true
+disable: "traefik"
 disable-network-policy: true
 {% endif %}
 {% if K3S_CLUSTER_CIDR is defined %}
