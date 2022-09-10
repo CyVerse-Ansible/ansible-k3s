@@ -6,15 +6,11 @@
     - "{{ ansible_distribution }}.yml"
     - "{{ ansible_os_family }}.yml"
 
-- name: SET_FACT; K3S_DOCKER_ENABLE = false if ubuntu 22 or newer
+# otherwise, it's set by vars and defaults
+- name: SET_FACT; INTERNAL_DOCKER_ENABLE = K3S_DOCKER_ENABLE
   set_fact:
-    K3S_DOCKER_ENABLE: false
-  when: K3S_DOCKER_ENABLE is not defined and ansible_distribution  == "Ubuntu" and ansible_distribution_major_version | int <= 22
-
-- name: SET_FACT; K3S_DOCKER_ENABLE = true otherwise
-  set_fact:
-    K3S_DOCKER_ENABLE: true
-  when: K3S_DOCKER_ENABLE is not defined and not (ansible_distribution  == "Ubuntu" and ansible_distribution_major_version | int <= 22)
+    INTERNAL_DOCKER_ENABLE: "{{ K3S_DOCKER_ENABLE }}"
+  when: K3S_DOCKER_ENABLE is defined
 
 # this sets up preliminary settings for multinode k3s
 - block:
@@ -78,7 +74,7 @@
         state: restarted
         daemon_reload: yes
       when: containerd_toml.changed or docker_daemon_json.changed
-    when: K3S_DOCKER_ENABLE|bool
+    when: INTERNAL_DOCKER_ENABLE|bool
   when: K3S_GPU_ENABLE|bool
 
 - name: FILE; create /opt/k3s to be used for install log and passwords, if relevant
@@ -90,7 +86,11 @@
 - import_tasks: postgresql.yml
   when: inventory_hostname in groups['k3s_masters'] and K3S_POSTGRESQL_ENABLE is defined and K3S_POSTGRESQL_ENABLE|bool
 
-- import_tasks: firewall.yml
+- import_tasks: firewall-Ubuntu.yml
+  when: ansible_distribution  == "Ubuntu" and K3S_FIREWALL_MANAGE is defined and K3S_FIREWALL_MANAGE|bool
+
+- import_tasks: firewall-Redhat.yml
+  when: ansible_distribution  == "AlmaLinux" or ansible_distribution  == "Rocky" or ansible_distribution  == "CentOS"
 
 - name: SHELL; uninstall if K3S_FORCE_UNINSTALL; if error, we'll assume it was already uninstalled
   shell: /usr/local/bin/k3s-uninstall.sh

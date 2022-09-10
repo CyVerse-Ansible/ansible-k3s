@@ -1,4 +1,4 @@
-# This vars file supports Ubuntu 22.04+
+# This vars file supports Ubuntu 20.04+
 
 ansible_python_interpreter: /usr/bin/python3
 
@@ -6,3 +6,5 @@ POSTGRESQL_PACKAGES:
   - postgresql
   - postgresql-client
   - python3-psycopg2
+
+INTERNAL_DOCKER_ENABLE: true
