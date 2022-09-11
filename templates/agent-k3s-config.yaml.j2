@@ -7,3 +7,5 @@ docker: "{{ K3S_DOCKER_ENABLE }}"
 {% if K3S_CALICO_ENABLE is defined and K3S_CALICO_ENABLE|bool %}
 flannel-backend: none
 {% endif %}
+kubelet-arg:
+  - "runtime-request-timeout=30m"
