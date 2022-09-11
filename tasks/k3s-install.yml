@@ -3,10 +3,10 @@
     k3s_version: "INSTALL_K3S_VERSION={{ K3S_VERSION }}"
   when: K3S_VERSION is defined
 
-# - name: SET_FACT; set k3s_docker_flag only if K3S_DOCKER_ENABLE is defined and true
-#   set_fact:
-#     k3s_docker_flag:  "--docker"
-#   when: K3S_DOCKER_ENABLE is defined and K3S_DOCKER_ENABLE|bool
+- name: SET_FACT; set k3s_docker_flag only if INTERNAL_DOCKER_ENABLE is defined and true
+  set_fact:
+    k3s_docker_flag:  "--docker"
+  when: INTERNAL_DOCKER_ENABLE|bool
 #
 # - name: SET_FACT; set k3s_disable_traefik if K3S_TRAEFIK_ENABLE is undefined or false
 #   set_fact:
@@ -89,7 +89,7 @@
   when: inventory_hostname in groups['k3s_masters'] and K3S_MASTER_INSTALL is defined and K3S_MASTER_INSTALL|bool
 
 - name: SHELL; execute install script on master nodes first
-  shell: "{{ k3s_version | default('') }} /opt/k3s/k3s_install.sh >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
+  shell: "{{ k3s_version | default('') }} /opt/k3s/k3s_install.sh {{ k3s_docker_flag | default('') }} >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
   args:
     warn: false
   when: inventory_hostname in groups['k3s_masters'] and K3S_MASTER_INSTALL is defined and K3S_MASTER_INSTALL|bool
@@ -144,7 +144,7 @@
   when: groups['k3s_agents'] is defined and inventory_hostname in groups['k3s_agents']
 
 - name: SHELL; execute install script on agent nodes
-  shell: "K3S_URL={{ k3s_master_url }} {{ k3s_token }} {{ k3s_version | default('') }} /opt/k3s/k3s_install.sh >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
+  shell: "K3S_URL={{ k3s_master_url }} {{ k3s_token }} {{ k3s_version | default('') }} /opt/k3s/k3s_install.sh {{ k3s_docker_flag | default('') }} >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
   args:
     warn: false
   when: groups['k3s_agents'] is defined and inventory_hostname in groups['k3s_agents']
