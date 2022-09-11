@@ -2,7 +2,7 @@
 token: "{{ (K3S_CLUSTER_TOKEN is defined) | ternary(K3S_CLUSTER_TOKEN, k3s_master_token_file.stdout) }}"
 #server: "{{ k3s_master_url }}"
 {% if K3S_DOCKER_ENABLE is defined and K3S_DOCKER_ENABLE|bool %}
-docker:"{{ K3S_DOCKER_ENABLE }}"
+docker: "{{ K3S_DOCKER_ENABLE }}"
 {% endif %}
 {% if K3S_CALICO_ENABLE is defined and K3S_CALICO_ENABLE|bool %}
 flannel-backend: none
