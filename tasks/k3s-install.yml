@@ -82,16 +82,29 @@
     group: root
     state: directory
 
-- name: create the k3s master config
-  ansible.builtin.template:
-    src: master-k3-sconfig.yaml.j2
-    dest: /etc/rancher/k3s/config.yaml
-  when: inventory_hostname in groups['k3s_masters'] and K3S_MASTER_INSTALL is defined and K3S_MASTER_INSTALL|bool
+- name: Block to install k3s on master nodes
+  block:
+    - name: create the k3s master config
+      ansible.builtin.template:
+        src: master-k3-sconfig.yaml.j2
+        dest: /etc/rancher/k3s/config.yaml
 
-- name: SHELL; execute install script on master nodes first
-  shell: "{{ k3s_version | default('') }} /opt/k3s/k3s_install.sh {{ k3s_docker_flag | default('') }} >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
-  args:
-    warn: false
+    - name: SHELL; execute install script on master nodes first
+      shell: "{{ k3s_version | default('') }} INSTALL_K3S_SKIP_START=true /opt/k3s/k3s_install.sh {{ k3s_docker_flag | default('') }} >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
+      args:
+        warn: false
+
+    # need this because this error:  Error while dialing dial unix /run/k3s/cri-dockerd/cri-dockerd.sock: connect: no such file or directory
+    - name: SYSTEMD; with k3s installed, let's start and wait
+      systemd:
+        name: k3s
+        state: started
+        enabled: true
+      register: k3s_service
+      until: k3s_service.status.ActiveState == "active"
+      retries: 15
+      delay: 20
+
   when: inventory_hostname in groups['k3s_masters'] and K3S_MASTER_INSTALL is defined and K3S_MASTER_INSTALL|bool
 
 - name: SET_FACT; obtain the k3s_master_ip
@@ -137,14 +150,26 @@
 ###
 # Install agent nodes
 ####
-- name: create the k3s agent config
-  ansible.builtin.template:
-    src: agent-k3s-config.yaml.j2
-    dest: /etc/rancher/k3s/config.yaml
-  when: groups['k3s_agents'] is defined and inventory_hostname in groups['k3s_agents']
+- name: Block to install k3s agents
+  block:
+    - name: create the k3s agent config
+      ansible.builtin.template:
+        src: agent-k3s-config.yaml.j2
+        dest: /etc/rancher/k3s/config.yaml
 
-- name: SHELL; execute install script on agent nodes
-  shell: "K3S_URL={{ k3s_master_url }} {{ k3s_token }} {{ k3s_version | default('') }} /opt/k3s/k3s_install.sh {{ k3s_docker_flag | default('') }} >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
-  args:
-    warn: false
+    - name: SHELL; execute install script on agent nodes
+      shell: "K3S_URL={{ k3s_master_url }} {{ k3s_token }} {{ k3s_version | default('') }} INSTALL_K3S_SKIP_START=true /opt/k3s/k3s_install.sh {{ k3s_docker_flag | default('') }} >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
+      args:
+        warn: false
+
+    # need this because this error:  Error while dialing dial unix /run/k3s/cri-dockerd/cri-dockerd.sock: connect: no such file or directory
+    - name: SYSTEMD; with k3s installed, let's start and wait
+      systemd:
+        name: k3s-agent 
+        state: started
+        enabled: true
+      register: k3s_agent_service
+      until: k3s_agent_service.status.ActiveState == "active"
+      retries: 15
+      delay: 20
   when: groups['k3s_agents'] is defined and inventory_hostname in groups['k3s_agents']
