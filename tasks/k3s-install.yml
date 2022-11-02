@@ -95,13 +95,13 @@
         warn: false
 
     # need this because this error:  Error while dialing dial unix /run/k3s/cri-dockerd/cri-dockerd.sock: connect: no such file or directory
-    - name: SYSTEMD; with k3s installed, let's start and wait
+    - name: SYSTEMD; with k3s installed, let's start and wait for k3s service
       systemd:
         name: k3s
         state: started
         enabled: true
       register: k3s_service
-      until: k3s_service.status.ActiveState == "active"
+      until: k3s_service.status.ActiveState is defined and k3s_service.status.ActiveState == "active"
       retries: 15
       delay: 20
 
@@ -163,13 +163,13 @@
         warn: false
 
     # need this because this error:  Error while dialing dial unix /run/k3s/cri-dockerd/cri-dockerd.sock: connect: no such file or directory
-    - name: SYSTEMD; with k3s installed, let's start and wait
+    - name: SYSTEMD; with k3s installed, let's start and wait for k3s agent
       systemd:
         name: k3s-agent 
         state: started
         enabled: true
       register: k3s_agent_service
-      until: k3s_agent_service.status.ActiveState == "active"
+      until: k3s_agent_service.status.ActiveState is defined and k3s_agent_service.status.ActiveState == "active"
       retries: 15
       delay: 20
   when: groups['k3s_agents'] is defined and inventory_hostname in groups['k3s_agents']
