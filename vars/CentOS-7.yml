@@ -1,3 +1,4 @@
+---
 POSTGRESQL_PACKAGES:
   - postgresql
   - postgresql-server

@@ -1,3 +1,4 @@
+---
 - name: SET_FACT; set install k3s version only if K3S_VERSION is defined
   set_fact:
     k3s_version: "INSTALL_K3S_VERSION={{ K3S_VERSION }}"
@@ -120,17 +121,17 @@
   when: K3S_MASTER_IP is defined
 
 - block:
-  - name: SHELL; grab the token from the master
-    shell: cat /var/lib/rancher/k3s/server/node-token
-    register: k3s_master_token_file
-    delegate_to: "{{ groups['k3s_masters'][0] }}"
-    run_once: true
+    - name: SHELL; grab the token from the master
+      shell: cat /var/lib/rancher/k3s/server/node-token
+      register: k3s_master_token_file
+      delegate_to: "{{ groups['k3s_masters'][0] }}"
+      run_once: true
 
-  - name: SET_FACT; set the k3s_token fact for all nodes
-    set_fact:
-      k3s_token: "K3S_TOKEN=\"{{ k3s_master_token_file.stdout }}\""
-  # when: K3S_CLUSTER_TOKEN is undefined
-  # run_once: true
+    - name: SET_FACT; set the k3s_token fact for all nodes
+      set_fact:
+        k3s_token: "K3S_TOKEN=\"{{ k3s_master_token_file.stdout }}\""
+        # when: K3S_CLUSTER_TOKEN is undefined
+        # run_once: true
 
 - name: DEBUG; print master url and token
   debug:
@@ -139,8 +140,8 @@
 - name: SHELL; install calico
   shell: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
   when:
-  - inventory_hostname in groups['k3s_masters']
-  - K3S_CALICO_ENABLE is defined and K3S_CALICO_ENABLE|bool
+    - inventory_hostname in groups['k3s_masters']
+    - K3S_CALICO_ENABLE is defined and K3S_CALICO_ENABLE|bool
 
 - import_tasks: k3s-install-gpu-nvidia-drivers.yml
   when: inventory_hostname in groups['k3s_masters'] and K3S_GPU_ENABLE|bool
@@ -165,7 +166,7 @@
     # need this because this error:  Error while dialing dial unix /run/k3s/cri-dockerd/cri-dockerd.sock: connect: no such file or directory
     - name: SYSTEMD; with k3s installed, let's start and wait for k3s agent
       systemd:
-        name: k3s-agent 
+        name: k3s-agent
         state: started
         enabled: true
       register: k3s_agent_service

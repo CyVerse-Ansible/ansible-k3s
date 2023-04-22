@@ -1,3 +1,4 @@
+---
 - name: UFW; modify ufw rules for Ubuntu
   ufw:
     state: enabled
@@ -20,7 +21,7 @@
     rule: allow
     interface: "{{ item }}"
     direction: in
-  loop: 
+  loop:
     - "cni0"
     - "docker0"
     - "flannel.1"
@@ -33,4 +34,3 @@
     src: "{{ item.src }}"
   loop: "{{ K3S_FIREWALL_ADD_PORTS }}"
   when: K3S_FIREWALL_ADD_PORTS is defined
-
