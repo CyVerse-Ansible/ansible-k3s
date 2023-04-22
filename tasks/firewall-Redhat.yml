@@ -1,22 +1,22 @@
 ---
 - name: Block for CentOS < 8
+  when: ansible_distribution == "CentOS" and ansible_distribution_major_version|int < 8
   block:
     - name: SHELL; disable selinux
-      shell: setenforce 0
-  when: ansible_distribution == "CentOS" and ansible_distribution_major_version|int < 8
+      ansible.builtin.command: setenforce 0
 
 - name: Block for CentOS >= 8
+  when: ansible_distribution == "AlmaLinux" or ansible_distribution == "Rocky" or (ansible_distribution == "CentOS" and ansible_distribution_major_version|int >= 8)
   block:
     - name: SELINUX; set selinux to permissive
       ansible.posix.selinux:
         state: disabled
 
     - name: SHELL; update crypto policies
-      shell: update-crypto-policies --set LEGACY
-  when: ansible_distribution == "AlmaLinux" or ansible_distribution == "Rocky" or (ansible_distribution == "CentOS" and ansible_distribution_major_version|int >= 8)
+      ansible.builtin.command: update-crypto-policies --set LEGACY
 
 - name: SERVICE; stop and disable firewalld.
-  service:
+  ansible.builtin.service:
     name: firewalld
     state: stopped
     enabled: false

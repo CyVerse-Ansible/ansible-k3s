@@ -1,16 +1,17 @@
 ---
 - name: SHELL; add the official postgresql repo
-  shell: echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list
-  args:
-    creates: /etc/apt/sources.list.d/pgdg.list
+  ansible.builtin.apt_repository:
+    repo: "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main"
+    state: present
+    filename: /etc/apt/sources.list.d/pgdg.list
 
 - name: SHELL; import the repo signing key for postgresql repo
-  shell: wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
-  args:
-    warn: false
+  ansible.builtin.apt_key:
+    url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+    state: present
 
 - name: APT; update cache and install postgresql server and client
-  apt:
+  ansible.builtin.apt:
     name: "{{ POSTGRESQL_PACKAGES }}"
     state: present
     update_cache: yes

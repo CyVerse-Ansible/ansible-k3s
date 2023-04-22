@@ -1,23 +1,23 @@
 ---
 - name: UFW; modify ufw rules for Ubuntu
-  ufw:
+  community.general.ufw:
     state: enabled
     default: deny
 
 - name: UFW; allow ssh in by default
-  ufw:
+  community.general.ufw:
     rule: allow
     port: ssh
     proto: tcp
 
 - name: UFW; allow all traffic between cluster hosts
-  ufw:
+  community.general.ufw:
     rule: allow
     src: "{{ hostvars[item]['ansible_host'] }}"
   loop: "{{ groups['k3s_cluster'] }}"
 
 - name: UFW; allow all traffic on cni0 port
-  ufw:
+  community.general.ufw:
     rule: allow
     interface: "{{ item }}"
     direction: in
@@ -27,7 +27,7 @@
     - "flannel.1"
 
 - name: UFW; process any additional ports
-  ufw:
+  community.general.ufw:
     port: "{{ item.port }}"
     rule: "{{ item.rule }}"
     proto: "{{ item.proto }}"

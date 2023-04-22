@@ -1,40 +1,48 @@
 ---
 # Note: currently, this is in a single block for the first master. Later will modify role to support HA masters
-- block:
+- name: Postgres for k3s masters
+  when: inventory_hostname in groups['k3s_masters'][0]
+  block:
 
-#    - include_tasks: "postgresql-install-{{ hostvars[groups['k3s_masters'][0]].ansible_distribution }}.yml"
-#      when: K3S_POSTGRESQL_INSTALL is defined and K3S_POSTGRESQL_INSTALL|bool
+    # - include_tasks: "postgresql-install-{{ hostvars[groups['k3s_masters'][0]].ansible_distribution }}.yml"
+    #   when: K3S_POSTGRESQL_INSTALL is defined and K3S_POSTGRESQL_INSTALL|bool
 
     - name: PACKAGE; update cache and install postgresql server and client
-      package:
+      ansible.builtin.package:
         name: "{{ POSTGRESQL_PACKAGES }}"
         state: present
         update_cache: yes
 
-    - name: STAT; check if a password has already been writted to /opt/k3s/postgres-{{K3S_POSTGRESQL_USER}}.pass
-      stat:
-        path: "/opt/k3s/postgres-{{K3S_POSTGRESQL_USER}}.pass"
+    - name: STAT; check if a password has already been writted to /opt/k3s/postgres-*.pass
+      ansible.builtin.stat:
+        path: "/opt/k3s/postgres-{{ K3S_POSTGRESQL_USER }}.pass"
       register: pass_file_check
       when: K3S_POSTGRESQL_PASS is undefined
 
     # Note: Did this because ansible variable register will not work as expected for skipped tasks. So, collapsed in bash one-liner, rather than multiple
     # ansible shell tasks
     - name: SHELL; generate a random password for postgres if K3S_POSTGRESQL_PASS is undefined
-      shell: "if [ -e /opt/k3s/postgres-{{K3S_POSTGRESQL_USER}}.pass ]; then cat /opt/k3s/postgres-{{K3S_POSTGRESQL_USER}}.pass; else date | sha1sum | base64 | tee /opt/k3s/postgres-{{K3S_POSTGRESQL_USER}}.pass; fi"
+      ansible.builtin.shell: |
+        set -o pipefail
+        if [ -e /opt/k3s/postgres-{{ K3S_POSTGRESQL_USER }}.pass ]; then
+          cat /opt/k3s/postgres-{{ K3S_POSTGRESQL_USER }}.pass;
+        else
+          date | sha1sum | base64 | tee /opt/k3s/postgres-{{ K3S_POSTGRESQL_USER }}.pass;
+        fi
       register: k3s_postgres_pass
       when: K3S_POSTGRESQL_PASS is undefined
 
     - name: SET_FACT; set K3S_POSTGRESQL_PASS to generated password if already undefined
-      set_fact:
+      ansible.builtin.set_fact:
         K3S_POSTGRESQL_PASS: "{{ k3s_postgres_pass.stdout }}"
       when: K3S_POSTGRESQL_PASS is undefined
 
-    - name: SHELL; write out the password to /opt/k3s/postgres-{{K3S_POSTGRESQL_USER}}.pass
-      shell: "echo {{ K3S_POSTGRESQL_PASS }} > /opt/k3s/postgres-{{K3S_POSTGRESQL_USER}}.pass"
+    - name: SHELL; write out the password to /opt/k3s/postgres-*.pass
+      ansible.builtin.shell: "echo {{ K3S_POSTGRESQL_PASS }} > /opt/k3s/postgres-{{ K3S_POSTGRESQL_USER }}.pass"
       when: not pass_file_check.stat.exists and K3S_POSTGRESQL_PASS is defined
 
     - name: POSTGRESQL_USER; create user {{ K3S_POSTGRESQL_USER }}
-      postgresql_user:
+      community.postgresql.postgresql_user:
         name: "{{ K3S_POSTGRESQL_USER }}"
         password: "{{ K3S_POSTGRESQL_PASS }}"
         role_attr_flags: "NOSUPERUSER"
@@ -42,9 +50,7 @@
       become_user: postgres
 
     - name: POSTGRESQL_DB; create database {{ K3S_POSTGRESQL_DB }}
-      postgresql_db:
+      community.postgresql.postgresql_db:
         name: "{{ K3S_POSTGRESQL_DB }}"
         owner: "{{ K3S_POSTGRESQL_USER }}"
       become_user: postgres
-
-  when: inventory_hostname in groups['k3s_masters'][0]

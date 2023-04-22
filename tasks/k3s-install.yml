@@ -1,11 +1,11 @@
 ---
 - name: SET_FACT; set install k3s version only if K3S_VERSION is defined
-  set_fact:
+  ansible.builtin.set_fact:
     k3s_version: "INSTALL_K3S_VERSION={{ K3S_VERSION }}"
   when: K3S_VERSION is defined
 
 - name: SET_FACT; set k3s_docker_flag only if INTERNAL_DOCKER_ENABLE is defined and true
-  set_fact:
+  ansible.builtin.set_fact:
     k3s_docker_flag:  "--docker"
   when: INTERNAL_DOCKER_ENABLE|bool
 #
@@ -50,7 +50,7 @@
 #   when: inventory_hostname in groups['k3s_masters'] and K3S_POSTGRESQL_ENABLE is defined and K3S_POSTGRESQL_ENABLE|bool
 
 - name: FILE; create /opt/k3s
-  file:
+  ansible.builtin.file:
     path: /opt/k3s
     state: directory
     mode: 0755
@@ -58,17 +58,16 @@
 # This local action was added to prevent ddos k3s download if we had 100s of vms. If this becomes problematic, we can change this approach to an option
 # The actual download ~27K and should be very fast to transfer locally (as of 5/13/2022)
 - name: LOCAL_ACTION; download the k3s installer once for everyone
-  local_action:
-    module: shell
-    cmd: curl -sfL -o /tmp/k3s_install.sh https://get.k3s.io
-    args:
-      warn: false
-      creates: /tmp/k3s_install.sh
+  ansible.builtin.get_url:
+    url: https://get.k3s.io
+    dest: /tmp/k3s_install.sh
+    mode: '0644'
   become: false
   run_once: true
+  delegate_to: localhost
 
 - name: COPY; copy over the installer into /opt/k3s/k3s_install.sh
-  copy:
+  ansible.builtin.copy:
     src: /tmp/k3s_install.sh
     dest: /opt/k3s/k3s_install.sh
     mode: 0755
@@ -82,22 +81,26 @@
     owner: root
     group: root
     state: directory
+    mode: 0755
 
 - name: Block to install k3s on master nodes
+  when: inventory_hostname in groups['k3s_masters'] and K3S_MASTER_INSTALL is defined and K3S_MASTER_INSTALL|bool
   block:
-    - name: create the k3s master config
+    - name: Create the k3s master config
       ansible.builtin.template:
         src: master-k3-sconfig.yaml.j2
         dest: /etc/rancher/k3s/config.yaml
+        mode: 0644
 
     - name: SHELL; execute install script on master nodes first
-      shell: "{{ k3s_version | default('') }} INSTALL_K3S_SKIP_START=true /opt/k3s/k3s_install.sh {{ k3s_docker_flag | default('') }} >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
-      args:
-        warn: false
+      ansible.builtin.shell: "/opt/k3s/k3s_install.sh {{ k3s_docker_flag | default('') }} > /opt/k3s/install.{{ ansible_date_time.iso8601 }}.log 2>&1"
+      environment:
+        INSTALL_K3S_VERSION: "{{ K3S_VERSION | default('') }}"
+        INSTALL_K3S_SKIP_START: true
 
     # need this because this error:  Error while dialing dial unix /run/k3s/cri-dockerd/cri-dockerd.sock: connect: no such file or directory
     - name: SYSTEMD; with k3s installed, let's start and wait for k3s service
-      systemd:
+      ansible.builtin.systemd:
         name: k3s
         state: started
         enabled: true
@@ -106,44 +109,44 @@
       retries: 15
       delay: 20
 
-  when: inventory_hostname in groups['k3s_masters'] and K3S_MASTER_INSTALL is defined and K3S_MASTER_INSTALL|bool
-
 - name: SET_FACT; obtain the k3s_master_ip
-  set_fact:
+  ansible.builtin.set_fact:
     k3s_master_ip: "{{ hostvars[groups['k3s_masters'][0]]['ansible_default_ipv4']['address'] }}"
     k3s_master_url: "https://{{ hostvars[groups['k3s_masters'][0]]['ansible_default_ipv4']['address'] }}:{{ K3S_MASTER_PORT }}"
   when: K3S_MASTER_IP is not defined
 
 - name: SET_FACT; set the k3s_master_ip based on given value
-  set_fact:
+  ansible.builtin.set_fact:
     k3s_master_ip: "{{ K3S_MASTER_IP }}"
     k3s_master_url: "https://{{ K3S_MASTER_IP }}:{{ K3S_MASTER_PORT }}"
   when: K3S_MASTER_IP is defined
 
-- block:
+- name: Set token
+  block:
     - name: SHELL; grab the token from the master
-      shell: cat /var/lib/rancher/k3s/server/node-token
+      ansible.builtin.command: cat /var/lib/rancher/k3s/server/node-token
       register: k3s_master_token_file
       delegate_to: "{{ groups['k3s_masters'][0] }}"
       run_once: true
 
     - name: SET_FACT; set the k3s_token fact for all nodes
-      set_fact:
+      ansible.builtin.set_fact:
         k3s_token: "K3S_TOKEN=\"{{ k3s_master_token_file.stdout }}\""
         # when: K3S_CLUSTER_TOKEN is undefined
         # run_once: true
 
 - name: DEBUG; print master url and token
-  debug:
+  ansible.builtin.debug:
     msg: "k3s master url = {{ k3s_master_url }}, token = {{ k3s_token }}"
 
 - name: SHELL; install calico
-  shell: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+  ansible.builtin.command: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
   when:
     - inventory_hostname in groups['k3s_masters']
     - K3S_CALICO_ENABLE is defined and K3S_CALICO_ENABLE|bool
 
-- import_tasks: k3s-install-gpu-nvidia-drivers.yml
+- name: Import k3s-install-gpu-nvidia-drivers
+  ansible.builtin.import_tasks: k3s-install-gpu-nvidia-drivers.yml
   when: inventory_hostname in groups['k3s_masters'] and K3S_GPU_ENABLE|bool
   environment:
     KUBECONFIG: "/etc/rancher/k3s/k3s.yaml"
@@ -152,20 +155,25 @@
 # Install agent nodes
 ####
 - name: Block to install k3s agents
+  when: groups['k3s_agents'] is defined and inventory_hostname in groups['k3s_agents']
   block:
-    - name: create the k3s agent config
+    - name: Create the k3s agent config
       ansible.builtin.template:
         src: agent-k3s-config.yaml.j2
         dest: /etc/rancher/k3s/config.yaml
+        mode: 0644
 
     - name: SHELL; execute install script on agent nodes
-      shell: "K3S_URL={{ k3s_master_url }} {{ k3s_token }} {{ k3s_version | default('') }} INSTALL_K3S_SKIP_START=true /opt/k3s/k3s_install.sh {{ k3s_docker_flag | default('') }} >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
-      args:
-        warn: false
+      ansible.builtin.shell: "/opt/k3s/k3s_install.sh {{ k3s_docker_flag | default('') }} >/opt/k3s/install.{{ ansible_date_time.iso8601 }}.log 2>&1"
+      environment:
+        K3S_URL: "{{ k3s_master_url }}"
+        K3S_TOKEN: "{{ k3s_master_token_file.stdout | default('') }}"
+        INSTALL_K3S_VERSION: "{{ K3S_VERSION | default('') }}"
+        INSTALL_K3S_SKIP_START: true
 
     # need this because this error:  Error while dialing dial unix /run/k3s/cri-dockerd/cri-dockerd.sock: connect: no such file or directory
     - name: SYSTEMD; with k3s installed, let's start and wait for k3s agent
-      systemd:
+      ansible.builtin.systemd:
         name: k3s-agent
         state: started
         enabled: true
@@ -173,4 +181,3 @@
       until: k3s_agent_service.status.ActiveState is defined and k3s_agent_service.status.ActiveState == "active"
       retries: 15
       delay: 20
-  when: groups['k3s_agents'] is defined and inventory_hostname in groups['k3s_agents']

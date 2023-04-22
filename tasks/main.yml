@@ -1,6 +1,6 @@
 ---
 - name: Gather OS-specific variables
-  include_vars: "{{ item }}"
+  ansible.builtin.include_vars: "{{ item }}"
   with_first_found:
     - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
     - "{{ ansible_distribution }}.yml"
@@ -8,112 +8,126 @@
 
 # otherwise, it's set by vars and defaults
 - name: SET_FACT; INTERNAL_DOCKER_ENABLE = K3S_DOCKER_ENABLE
-  set_fact:
+  ansible.builtin.set_fact:
     INTERNAL_DOCKER_ENABLE: "{{ K3S_DOCKER_ENABLE }}"
   when: K3S_DOCKER_ENABLE is defined
 
 # this sets up preliminary settings for multinode k3s
-- block:
+- name: K3S multinode
+  when: K3S_IS_MULTINODE|bool
+  block:
     - name: SYSCTL; enable forwarding ipv4
-      sysctl:
+      ansible.posix.sysctl:
         name: net.ipv4.ip_forward
         value: 1
         state: present
 
     - name: SYSCTL; enable forwarding ipv6
-      sysctl:
+      ansible.posix.sysctl:
         name: net.ipv4.ip_forward
         value: 1
         state: present
 
-    # - name: SYSCTL; enable net.bridge.bridge-nf-call-iptables
-    #   sysctl:
-    #     name: net.bridge.bridge-nf-call-iptables
-    #     value: 1
-    #     state: present
+    - name: SYSCTL; enable net.bridge.bridge-nf-call-iptables
+      ansible.posix.sysctl:
+        name: net.bridge.bridge-nf-call-iptables
+        value: 1
+        state: present
+      when: false
 
-    # - name: SYSCTL; net.bridge.bridge-nf-call-ip6tables
-    #   sysctl:
-    #     name: net.bridge.bridge-nf-call-ip6tables
-    #     value: 1
-    #     state: present
-  when: K3S_IS_MULTINODE|bool
+    - name: SYSCTL; net.bridge.bridge-nf-call-ip6tables
+      ansible.posix.sysctl:
+        name: net.bridge.bridge-nf-call-ip6tables
+        value: 1
+        state: present
+      when: false
 
 # this is only necessary if K3S_GPU_ENABLE
-- block:
+- name: K3s GPU
+  when: K3S_GPU_ENABLE|bool
+  block:
     - name: FILE; ensure /etc/containerd exists
-      file:
+      ansible.builtin.file:
         path: /etc/containerd
         state: directory
         mode: "0777"
 
     - name: TEMPLATE; create /etc/containerd/config.toml
-      template:
+      ansible.builtin.template:
         src: containerd-config.toml.j2
         dest:  /etc/containerd/config.toml
         mode: 0644
       register: containerd_toml
 
     - name: SYSTEMD; restart containerd, only if containerd_toml changed
-      systemd:
+      ansible.builtin.systemd:
         name: containerd
         state: restarted
       when: containerd_toml.changed
 
-    - block:
+    - name: Use Internal docker
+      when: INTERNAL_DOCKER_ENABLE|bool
+      block:
         - name: TEMPLATE; /etc/docker/daemon.json
-          template:
+          ansible.builtin.template:
             src: docker-daemon.json.j2
             dest: /etc/docker/daemon.json
             mode: 0644
           register: docker_daemon_json
 
         - name: SYSTEMD; restart docker, only containerd_toml changed as well (jic) or docker_daemon_json
-          systemd:
+          ansible.builtin.systemd:
             name: docker
             state: restarted
             daemon_reload: yes
           when: containerd_toml.changed or docker_daemon_json.changed
-      when: INTERNAL_DOCKER_ENABLE|bool
-  when: K3S_GPU_ENABLE|bool
 
 - name: FILE; create /opt/k3s to be used for install log and passwords, if relevant
-  file:
+  ansible.builtin.file:
     path: /opt/k3s
     state: directory
     mode: 0755
 
-- import_tasks: postgresql.yml
+- name: Import postgresql
+  ansible.builtin.import_tasks: postgresql.yml
   when: inventory_hostname in groups['k3s_masters'] and K3S_POSTGRESQL_ENABLE is defined and K3S_POSTGRESQL_ENABLE|bool
 
-- import_tasks: firewall-Ubuntu.yml
+- name: Import firewall-Ubuntu
+  ansible.builtin.import_tasks: firewall-Ubuntu.yml
   when: ansible_distribution  == "Ubuntu" and K3S_FIREWALL_MANAGE is defined and K3S_FIREWALL_MANAGE|bool
 
-- import_tasks: firewall-Redhat.yml
+- name: Import firewall-Redhat
+  ansible.builtin.import_tasks: firewall-Redhat.yml
   when: ansible_distribution  == "AlmaLinux" or ansible_distribution  == "Rocky" or ansible_distribution  == "CentOS"
 
 - name: SHELL; uninstall if K3S_FORCE_UNINSTALL; if error, we'll assume it was already uninstalled
-  shell: /usr/local/bin/k3s-uninstall.sh
-  ignore_errors: true
+  ansible.builtin.command: /usr/local/bin/k3s-uninstall.sh
+  failed_when: false
   when: inventory_hostname in groups['k3s_cluster'] and K3S_FORCE_UNINSTALL is defined and K3S_FORCE_UNINSTALL|bool
 
 # helm is needed for some services
-- block:
+- name: Helm for k3s masters
+  when: inventory_hostname in groups['k3s_masters']
+  block:
     - name: SHELL; locate helm binary
-      shell:
+      ansible.builtin.command:
         cmd: command -v helm
+      args:
+        executable: /bin/bash
       register: helm_found
       ignore_errors: true
 
-    - name: adjust helm path based on env
-      set_fact:
+    - name: Adjust helm path based on env
+      ansible.builtin.set_fact:
         HELM_INSTALL_DIR: "HELM_INSTALL_DIR=/usr/bin"
       when: '"/usr/local/bin" not in ansible_env.PATH'
 
     - name: SHELL; install helm, if not found
-      shell:
-        cmd: curl https://raw.githubusercontent.com/helm/helm/HEAD/scripts/get-helm-3 | {{ HELM_INSTALL_DIR | default('') }} bash
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          curl https://raw.githubusercontent.com/helm/helm/HEAD/scripts/get-helm-3 | {{ HELM_INSTALL_DIR | default('') }} bash
       when: helm_found is failed
-  when: inventory_hostname in groups['k3s_masters']
 
-- import_tasks: k3s-install.yml
+- name: Import k3s-install
+  ansible.builtin.import_tasks: k3s-install.yml
