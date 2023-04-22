@@ -1,5 +1,6 @@
 ---
-- hosts: localhost
+- name: Test play
+  hosts: localhost
   remote_user: root
   roles:
-    - k3s
+    - cyverse_ansible.ansible_k3s
