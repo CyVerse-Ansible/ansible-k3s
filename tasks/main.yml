@@ -111,11 +111,9 @@
   block:
     - name: SHELL; locate helm binary
       ansible.builtin.command:
-        cmd: command -v helm
-      args:
-        executable: /bin/bash
+        cmd: which helm
       register: helm_found
-      ignore_errors: true
+      failed_when: false
 
     - name: Adjust helm path based on env
       ansible.builtin.set_fact:
@@ -127,6 +125,8 @@
         cmd: |
           set -o pipefail
           curl https://raw.githubusercontent.com/helm/helm/HEAD/scripts/get-helm-3 | {{ HELM_INSTALL_DIR | default('') }} bash
+      args:
+        executable: /bin/bash
       when: helm_found is failed
 
 - name: Import k3s-install

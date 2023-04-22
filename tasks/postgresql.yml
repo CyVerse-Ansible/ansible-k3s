@@ -29,6 +29,8 @@
         else
           date | sha1sum | base64 | tee /opt/k3s/postgres-{{ K3S_POSTGRESQL_USER }}.pass;
         fi
+      args:
+        executable: /bin/bash
       register: k3s_postgres_pass
       when: K3S_POSTGRESQL_PASS is undefined
 

@@ -96,7 +96,7 @@
       ansible.builtin.shell: "/opt/k3s/k3s_install.sh {{ k3s_docker_flag | default('') }} > /opt/k3s/install.{{ ansible_date_time.iso8601 }}.log 2>&1"
       environment:
         INSTALL_K3S_VERSION: "{{ K3S_VERSION | default('') }}"
-        INSTALL_K3S_SKIP_START: true
+        INSTALL_K3S_SKIP_START: 'true'
 
     # need this because this error:  Error while dialing dial unix /run/k3s/cri-dockerd/cri-dockerd.sock: connect: no such file or directory
     - name: SYSTEMD; with k3s installed, let's start and wait for k3s service
@@ -169,7 +169,7 @@
         K3S_URL: "{{ k3s_master_url }}"
         K3S_TOKEN: "{{ k3s_master_token_file.stdout | default('') }}"
         INSTALL_K3S_VERSION: "{{ K3S_VERSION | default('') }}"
-        INSTALL_K3S_SKIP_START: true
+        INSTALL_K3S_SKIP_START: 'true'
 
     # need this because this error:  Error while dialing dial unix /run/k3s/cri-dockerd/cri-dockerd.sock: connect: no such file or directory
     - name: SYSTEMD; with k3s installed, let's start and wait for k3s agent

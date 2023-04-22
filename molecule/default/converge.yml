@@ -27,6 +27,15 @@
       when: >
         (ansible_distribution == "Ubuntu" and ansible_distribution_major_version | int >= 16) or
         (ansible_os_family == "RedHat" and ansible_distribution_major_version | int >= 8)
+    - name: Debian | Update cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+      when: ansible_os_family == 'Debian'
+    - name: Ensure gnupg is present for geerlingguy.docker
+      ansible.builtin.package:
+        name: gnupg
+        state: present
   roles:
     - geerlingguy.docker
-    - cyverse-ansible.ansible_k3s
+    - cyverse_ansible.ansible_k3s

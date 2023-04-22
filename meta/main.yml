@@ -3,7 +3,7 @@ galaxy_info:
   author: cyverse_ansible
   role_name: ansible_k3s
   description: This role will install a single or multi-cluster k3s, with the option of installing with postgresql. At this time, this is not suppose to be a comprehensive k3s, but rather a role sufficient for CyVerse's needs
-  company: CyVerse, the University fo Arizona
+  company: CyVerse, the University of Arizona
   standalone: true
 
   # If the issue tracker for your role is not on github, uncomment the
