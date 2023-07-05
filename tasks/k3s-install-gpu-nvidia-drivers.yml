@@ -1,27 +1,37 @@
-- block: # this block for docker
+- block: # this block for nvidia device plugin
+  - name: create the nvidia device plugin configuration
+    ansible.builtin.template:
+      src: nvdp.yaml.j2
+      dest: /opt/k3s/nvdp.yaml
+
   - name: HELM_REPOSITORY; add nvdp as https://nvidia.github.io/k8s-device-plugin
     kubernetes.core.helm_repository:
       name: nvdp
       repo_url: https://nvidia.github.io/k8s-device-plugin
 
-  - name: HELM_REPOSITORY; add nvgfd as https://nvidia.github.io/gpu-feature-discovery
-    kubernetes.core.helm_repository:
-      name: nvgfd
-      repo_url: https://nvidia.github.io/gpu-feature-discovery
+  # - name: HELM_REPOSITORY; add nvgfd as https://nvidia.github.io/gpu-feature-discovery
+  #   kubernetes.core.helm_repository:
+  #     name: nvgfd
+  #     repo_url: https://nvidia.github.io/gpu-feature-discovery
 
   - name: SHELL; helm repo update
     shell: helm repo update
 
   # TODO investigate if "helm install --generate-name --set migStrategy=none nvdp/nvidia-device-plugin"
   - name: SHELL; install nvdp/nvidia-device-plugin
-    shell: "helm upgrade --install --set flags.migStrategy=none nvidia-device-plugin nvdp/nvidia-device-plugin --version {{ K3S_NVIDIA_DEVICE_PLUGIN_VERSION }} --namespace nvidia-device-plugin --create-namespace"
+    shell: "helm upgrade --install --set gfd.enabled=true nvidia-device-plugin nvdp/nvidia-device-plugin --version {{ K3S_NVIDIA_DEVICE_PLUGIN_VERSION }} --namespace nvidia-device-plugin --create-namespace --set-file config.map.config=/opt/k3s/nvdp.yaml"
 
   # TODO investigate if "helm install --generate-name --set migStrategy=none nvgfd/gpu-feature-discovery"
-  - name: SHELL; install nvgfd/gpu-feature-discovery
-    shell: "helm upgrade --install --set migStrategy=none gpu-feature-discovery nvgfd/gpu-feature-discovery --version {{ K3S_NVGFD_VERSION }} --namespace gpu-feature-discovery --create-namespace"
-  when: K3S_DOCKER_ENABLE is defined and K3S_DOCKER_ENABLE|bool
+  # - name: SHELL; install nvgfd/gpu-feature-discovery
+  #   shell: "helm upgrade --install --set migStrategy=none gpu-feature-discovery nvgfd/gpu-feature-discovery --version {{ K3S_NVGFD_VERSION }} --namespace gpu-feature-discovery --create-namespace --set-file config.map.config=/opt/k3s/nvdp.yaml"
+  when: not K3S_NVIDIA_USE_GPU_OPERATOR|bool
 
 - block: # this block for containerd (not docker), installs the nvidia operator
+  - name: create the nvidia gpu operator values file
+    ansible.builtin.template:
+      src: gpu-operator-values.yaml.j2
+      dest: /opt/k3s/gpu-operator-values.yaml
+
   - name: HELM_REPOSITORY; add nvidia as https://nvidia.github.io/gpu-operator
     kubernetes.core.helm_repository:
       name: nvidia
@@ -31,6 +41,6 @@
     shell: helm repo update
 
   - name: SHELL; install nvidia/gpu-operator
-    shell: helm install --wait --generate-name nvidia/gpu-operator --set operator.defaultRuntime=containerd --set driver.enabled=false --set toolkit.enabled=false
-  when: (K3S_DOCKER_ENABLE is not defined) or (not K3S_DOCKER_ENABLE|bool)
+    shell: helm install --wait --generate-name nvidia/gpu-operator -n gpu-operator --create-namespace -f /opt/k3s/gpu-operator-values.yaml
+  when: K3S_NVIDIA_USE_GPU_OPERATOR|bool
 

@@ -1,0 +1,10 @@
+version: v1
+{% if K3S_GPU_TIMESLICE_ENABLE is defined and K3S_GPU_TIMESLICE_ENABLE|bool %}
+flags:
+  migStrategy: none
+sharing:
+  timeSlicing:
+    resources:
+    - name: nvidia.com/gpu
+      replicas: {{ K3S_GPU_TIMESLICE_NUM }}
+{% endif %}

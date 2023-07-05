@@ -63,6 +63,11 @@ Variable Name | Default value if not defined | Description
 ------------- | ---------------------- | -----------
 K3S_DOCKER_ENABLE | version_dependent | enables the docker engine if not set will be true unless the os version is ubuntu2204 or newer
 K3S_GPU_ENABLE | false | enables nvidia gpu driver
+K3S_GPU_TIMESLICE_ENABLE | false | if gpu enabled, this setting will enable time slicing
+K3S_GPU_TIMESLICE_NUM | 2 | default time slices is two, if K3S_GPU_TIMESLICE_ENABLE
+K3S_NVIDIA_USE_GPU_OPERATOR | true | default is to use nvidia's gpu operator (if gpu enabled)
+K3S_NVIDIA_GPU_OPERATOR_DRIVER | false | use driver in container (see https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/getting-started.html)
+K3S_NVIDIA_GPU_OPERATOR_TOOLKIT | false | use toolkit in container (see https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/getting-started.html)
 K3S_TRAEFIK_ENABLE | false | disable traefik ingress
 K3s_FLANNEL_BACKEND | none | if set, it will pass the value to --flannel-backend=
 K3S_CALICO_ENABLE  (not working) | false | enable calico

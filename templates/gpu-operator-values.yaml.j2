@@ -1,0 +1,25 @@
+devicePlugin:
+  config:
+    name: "device-plugin-config"
+    create: true
+    default: "any"
+    data:
+      any: |-
+        version: v1
+        flags:
+          migStrategy: none
+{% if K3S_GPU_TIMESLICE_ENABLE is defined and K3S_GPU_TIMESLICE_ENABLE|bool %}
+        sharing:
+          timeSlicing:
+            resources:
+            - name: nvidia.com/gpu
+              replicas: {{ K3S_GPU_TIMESLICE_NUM }}
+{% endif %}
+mig:
+  strategy: none
+driver:
+  enabled: {{ K3S_NVIDIA_GPU_OPERATOR_DRIVER | lower }}
+toolkit:
+  enabled: {{ K3S_NVIDIA_GPU_OPERATOR_TOOLKIT| lower }}
+operator:
+  defaultRuntime: "{{ (K3S_DOCKER_ENABLE is defined) and K3S_DOCKER_ENABLE|bool | ternary('docker', 'containerd') }}"
