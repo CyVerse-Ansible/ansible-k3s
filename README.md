@@ -71,6 +71,7 @@ K3S_NVIDIA_GPU_OPERATOR_TOOLKIT | false | use toolkit in container (see https://
 K3S_TRAEFIK_ENABLE | false | disable traefik ingress
 K3s_FLANNEL_BACKEND | none | if set, it will pass the value to --flannel-backend=
 K3S_CALICO_ENABLE  (not working) | false | enable calico
+K3S_CALICO_VERSION | v3.26.4 | version of calico to install
 K3S_CLUSTER_TOKEN | none | if set, the cluster will be initialized to this token, rather than randomly generated
 K3S_CLUSTER_CIDR | none | if set, cidr for cluster e.g. 192.168.0.0/16
 K3S_VERSION | none | if set, will attempt to set the k3s version
@@ -88,6 +89,7 @@ K3S_POSTGRESQL_PASS | randomly generated | password to use for K3S_POSTGRESQL_US
 K3S_FIREWALL_MANAGE | false | enables firewall management through this role
 K3S_FIREWALL_ADD_PORTS | none | This is an array of dictionaries (see example playbook for examples); each element should have port, rule, proto, and src
 K3S_REGISTRIES_MIRRORS | none | If defined, will place the everything under the "mirrors:" in /etc/rancher/k3s/registries.yaml; ensure that the included yaml containers "mirrors:"
+K3S_KUBE_CONFIG | /etc/rancher/k3s/k3s.yaml | location of the kube config file
 
 Example Playbook
 ----------------

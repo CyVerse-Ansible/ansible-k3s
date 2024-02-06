@@ -79,7 +79,7 @@
 
 - name: FILE; create /opt/k3s to be used for install log and passwords, if relevant
   file:
-    path: /opt/k3s
+    path: "{{ K3S_INSTALL_DIR}}"
     state: directory
     mode: 0755
 
