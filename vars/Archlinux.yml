@@ -1,0 +1,4 @@
+POSTGRESQL_PACKAGES:
+- postgresql-libs
+- postgresql
+- python-psycopg2
