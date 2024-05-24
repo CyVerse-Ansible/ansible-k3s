@@ -61,7 +61,6 @@
     module: shell
     cmd: curl -sfL -o /tmp/k3s_install.sh https://get.k3s.io
     args:
-      warn: false
       creates: /tmp/k3s_install.sh
   become: false
   run_once: true
@@ -91,8 +90,6 @@
 
     - name: SHELL; execute install script on master nodes first
       shell: "{{ k3s_version | default('') }} INSTALL_K3S_SKIP_START=true /opt/k3s/k3s_install.sh {{ k3s_docker_flag | default('') }} >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
-      args:
-        warn: false
 
     # need this because this error:  Error while dialing dial unix /run/k3s/cri-dockerd/cri-dockerd.sock: connect: no such file or directory
     - name: SYSTEMD; with k3s installed, let's start and wait for k3s service
@@ -159,8 +156,6 @@
 
     - name: SHELL; execute install script on agent nodes
       shell: "K3S_URL={{ k3s_master_url }} {{ k3s_token }} {{ k3s_version | default('') }} INSTALL_K3S_SKIP_START=true /opt/k3s/k3s_install.sh {{ k3s_docker_flag | default('') }} >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
-      args:
-        warn: false
 
     # need this because this error:  Error while dialing dial unix /run/k3s/cri-dockerd/cri-dockerd.sock: connect: no such file or directory
     - name: SYSTEMD; with k3s installed, let's start and wait for k3s agent
