@@ -5,8 +5,6 @@
 
 - name: SHELL; import the repo signing key for postgresql repo
   shell: wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
-  args:
-    warn: false
 
 - name: APT; update cache and install postgresql server and client
   apt:
