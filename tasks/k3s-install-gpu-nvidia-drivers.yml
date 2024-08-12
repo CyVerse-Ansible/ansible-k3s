@@ -1,3 +1,10 @@
+- name: APT; install dependencies
+  ansible.builtin.apt:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - jq
+
 - block: # this block for nvidia device plugin
   - name: create the nvidia device plugin configuration
     ansible.builtin.template:
@@ -40,7 +47,26 @@
   - name: SHELL; helm repo update
     shell: helm repo update
 
-  - name: SHELL; install nvidia/gpu-operator
-    shell: helm install --wait --generate-name nvidia/gpu-operator -n gpu-operator --create-namespace -f /opt/k3s/gpu-operator-values.yaml
+  # TODO: this can be removed at some point since the ansible helm will work
+  # but leaving this here to help fix future ones
+  - name: SHELL; test if gpu operator already installed
+    shell: helm list -n gpu-operator -o json|jq -r '.[0].name'
+    register: gpu_operator_installed
+    ignore_errors: true
+    failed_when: false
+
+  - name: HELM; install nvidia/gpu-operator
+    kubernetes.core.helm:
+      name: nvidia-gpu-operator
+      chart_ref: nvidia/gpu-operator
+      release_namespace: gpu-operator
+      create_namespace: yes
+      values_files:
+        - /opt/k3s/gpu-operator-values.yaml
+    when: gpu_operator_installed.stdout == 'null'
+
+  # - name: SHELL; install nvidia/gpu-operator
+    # shell: helm install --wait --generate-name nvidia/gpu-operator -n gpu-operator --create-namespace -f /opt/k3s/gpu-operator-values.yaml
+    # shell: helm upgrade --install --wait --generate-name nvidia/gpu-operator -n gpu-operator --create-namespace -f /opt/k3s/gpu-operator-values.yaml
   when: K3S_NVIDIA_USE_GPU_OPERATOR|bool
 
