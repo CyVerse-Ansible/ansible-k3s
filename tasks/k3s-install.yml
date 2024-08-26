@@ -7,11 +7,11 @@
   set_fact:
     k3s_docker_flag:  "--docker"
   when: INTERNAL_DOCKER_ENABLE|bool
-#
-# - name: SET_FACT; set k3s_disable_traefik if K3S_TRAEFIK_ENABLE is undefined or false
-#   set_fact:
-#     k3s_disable_traefik:  "--disable traefik --disable-network-policy"
-#   when: K3S_TRAEFIK_ENABLE is undefined or not K3S_TRAEFIK_ENABLE|bool
+
+- name: SET_FACT; set k3s_disable_servicelb if K3S_SERVICELB_DISABLE is enabled and true
+  set_fact:
+    k3s_disable_servicelb:  "--disable servicelb"
+  when: K3S_SERVICELB_DISABLE is defined and K3S_SERVICELB_DISABLE|bool
 #
 # - name: SET_FACT; set k3s_flannel_backend if K3s_FLANNEL_BACKEND is defined
 #   set_fact:
@@ -38,10 +38,10 @@
 #     k3s_servicelb_disable:  "--disable servicelb"
 #   when: K3S_SERVICELB_DISABLE|bool == true
 
-# - name: SET_FACT; set install_k3s_exec
-#   set_fact:
-#     install_k3s_master_exec:  "INSTALL_K3S_EXEC=\"{{ k3s_disable_traefik | default('') }} {{ k3s_calico_enable | default('') }} {{ k3s_cluster_cidr | default('') }} {{ k3s_flannel_backend | default('') }}\""
-#     install_k3s_worker_exec:  "INSTALL_K3S_EXEC=\"{{ k3s_calico_enable | default('') }}\""
+- name: SET_FACT; set install_k3s_exec
+  set_fact:
+    install_k3s_master_exec:  "INSTALL_K3S_EXEC=\"{{ k3s_disable_servicelb | default('') }}\""
+    # install_k3s_worker_exec:  "INSTALL_K3S_EXEC=\"{{ k3s_disable_servicelb | default('') }}\""
 #
 # - name: SET_FACT; set k3s_postgresql_env if K3S_POSTGRESQL_ENABLE is defined and true
 #   set_fact:
@@ -89,7 +89,7 @@
         dest: /etc/rancher/k3s/config.yaml
 
     - name: SHELL; execute install script on master nodes first
-      shell: "{{ k3s_version | default('') }} INSTALL_K3S_SKIP_START=true /opt/k3s/k3s_install.sh {{ k3s_docker_flag | default('') }} >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
+      shell: "{{ k3s_version | default('') }} {{ install_k3s_master_exec }} INSTALL_K3S_SKIP_START=true /opt/k3s/k3s_install.sh {{ k3s_docker_flag | default('') }} >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
 
     # need this because this error:  Error while dialing dial unix /run/k3s/cri-dockerd/cri-dockerd.sock: connect: no such file or directory
     - name: SYSTEMD; with k3s installed, let's start and wait for k3s service

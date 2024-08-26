@@ -69,6 +69,7 @@ K3S_NVIDIA_USE_GPU_OPERATOR | true | default is to use nvidia's gpu operator (if
 K3S_NVIDIA_GPU_OPERATOR_DRIVER | false | use driver in container (see https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/getting-started.html)
 K3S_NVIDIA_GPU_OPERATOR_TOOLKIT | false | use toolkit in container (see https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/getting-started.html)
 K3S_TRAEFIK_ENABLE | false | disable traefik ingress
+K3S_SERVICELB_DISABLE | false | disables the service load balancer
 K3s_FLANNEL_BACKEND | none | if set, it will pass the value to --flannel-backend=
 K3S_CALICO_ENABLE  (not working) | false | enable calico
 K3S_CLUSTER_TOKEN | none | if set, the cluster will be initialized to this token, rather than randomly generated
