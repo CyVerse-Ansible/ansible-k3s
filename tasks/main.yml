@@ -41,24 +41,24 @@
 
 # this is only necessary if K3S_GPU_ENABLE
 - block:
-  - name: FILE; ensure /etc/containerd exists
-    file:
-      path: /etc/containerd
-      state: directory
-      mode: "0777"
+  # - name: FILE; ensure /etc/containerd exists
+  #   file:
+  #     path: /etc/containerd
+  #     state: directory
+  #     mode: "0777"
 
-  - name: TEMPLATE; create /etc/containerd/config.toml
-    template:
-      src: containerd-config.toml.j2
-      dest:  /etc/containerd/config.toml
-      mode: 0644
-    register: containerd_toml
+  # - name: TEMPLATE; create /etc/containerd/config.toml
+  #   template:
+  #     src: containerd-config.toml.j2
+  #     dest:  /etc/containerd/config.toml
+  #     mode: 0644
+  #   register: containerd_toml
 
-  - name: SYSTEMD; restart containerd, only if containerd_toml changed
-    systemd:
-      name: containerd
-      state: restarted
-    when: containerd_toml.changed
+  # - name: SYSTEMD; restart containerd, only if containerd_toml changed
+  #   systemd:
+  #     name: containerd
+  #     state: restarted
+  #   when: containerd_toml.changed
 
   - block:
     - name: TEMPLATE; /etc/docker/daemon.json
