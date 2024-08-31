@@ -41,25 +41,32 @@
 
 # this is only necessary if K3S_GPU_ENABLE
 - block:
-  # - name: FILE; ensure /etc/containerd exists
-  #   file:
-  #     path: /etc/containerd
-  #     state: directory
-  #     mode: "0777"
+  - name: SHELL; import nvidia's gpg key
+    ansible.builtin.shell: curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | gpg --batch --yes --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
 
-  # - name: TEMPLATE; create /etc/containerd/config.toml
-  #   template:
-  #     src: containerd-config.toml.j2
-  #     dest:  /etc/containerd/config.toml
-  #     mode: 0644
-  #   register: containerd_toml
+  - name: SHELL; install apt listing
+    ansible.builtin.shell: curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+    args:
+      creates: /etc/apt/sources.list.d/nvidia-container-toolkit.list
 
-  # - name: SYSTEMD; restart containerd, only if containerd_toml changed
-  #   systemd:
-  #     name: containerd
-  #     state: restarted
-  #   when: containerd_toml.changed
+  - name: APT; install nvidia-container-toolkit and nvidia-cuda-toolkit
+    ansible.builtin.apt:
+      name: 
+      - nvidia-container-toolkit
+      - nvidia-cuda-toolkit
+      update_cache: true
+      state: latest
+    register: toolkit
 
+  - name: SHELL; run nvidia-ctk runtime configure
+    ansible.builtin.shell: nvidia-ctk runtime configure --runtime=containerd
+
+  - name: SYSTEMD_SERVICE; restart if a new toolkit is updated
+    ansible.builtin.systemd_service:
+      name: containerd
+      state: restarted
+    when: toolkit.changed
+          
   - block:
     - name: TEMPLATE; /etc/docker/daemon.json
       template:
