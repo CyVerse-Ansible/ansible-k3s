@@ -82,7 +82,7 @@
         daemon_reload: yes
       when: containerd_toml.changed or docker_daemon_json.changed
     when: INTERNAL_DOCKER_ENABLE|bool
-  when: K3S_GPU_ENABLE|bool
+  when: K3S_GPU_ENABLE|bool or K3S_GPU_ENABLE == true
 
 - name: FILE; create /opt/k3s to be used for install log and passwords, if relevant
   file:
