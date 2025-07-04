@@ -88,6 +88,8 @@ K3S_POSTGRESQL_PASS | randomly generated | password to use for K3S_POSTGRESQL_US
 K3S_FIREWALL_MANAGE | false | enables firewall management through this role
 K3S_FIREWALL_ADD_PORTS | none | This is an array of dictionaries (see example playbook for examples); each element should have port, rule, proto, and src
 K3S_REGISTRIES_MIRRORS | none | If defined, will place the everything under the "mirrors:" in /etc/rancher/k3s/registries.yaml; ensure that the included yaml containers "mirrors:"
+K3s_LEADER_TOLERATIONS | [] | tolerations to add for services that should be run on leader (master) nodes; used in gpu operator
+K3s_WORKER_TOLERATIONS | [] | tolerations to add for services that should be run on worker nodes; used in gpu operator
 
 Example Playbook
 ----------------

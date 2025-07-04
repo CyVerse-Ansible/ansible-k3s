@@ -23,3 +23,52 @@ toolkit:
   enabled: {{ K3S_NVIDIA_GPU_OPERATOR_TOOLKIT| lower }}
 operator:
   defaultRuntime: "{{ (K3S_DOCKER_ENABLE is defined) and K3S_DOCKER_ENABLE|bool | ternary('docker', 'containerd') }}"
+{% if K3S_WORKER_TOLERATIONS|length > 0 %}
+  tolerations:
+{% for toleration in K3S_WORKER_TOLERATIONS %}
+  - key: "{{ toleration.key }}"
+    operator: "{{ toleration.operator }}"
+    value: "{{ toleration.value }}"
+    effect: "{{ toleration.effect }}"
+{% endfor %}
+daemonsets:
+  tolerations:
+{% for toleration in K3S_WORKER_TOLERATIONS %}
+  - key: "{{ toleration.key }}"
+    operator: "{{ toleration.operator }}"
+    value: "{{ toleration.value }}"
+    effect: "{{ toleration.effect }}"
+{% endfor %}
+{% endif %}
+
+{% if K3S_WORKER_TOLERATIONS|length > 0 or K3S_LEADER_TOLERATIONS|length > 0 %}
+node-feature-discovery:
+{% if K3S_WORKER_TOLERATIONS|length > 0 %}
+  worker:
+    tolerations:
+{% for toleration in K3S_WORKER_TOLERATIONS %}
+    - key: "{{ toleration.key }}"
+      operator: "{{ toleration.operator }}"
+      value: "{{ toleration.value }}"
+      effect: "{{ toleration.effect }}"
+{% endfor %}
+{% endif %}
+{% if K3S_LEADER_TOLERATIONS|length > 0 %}
+  gc:
+    tolerations:
+{% for toleration in K3S_LEADER_TOLERATIONS %}
+    - key: "{{ toleration.key }}"
+      operator: "{{ toleration.operator }}"
+      value: "{{ toleration.value }}"
+      effect: "{{ toleration.effect }}"
+{% endfor %}
+  master:
+    tolerations:
+{% for toleration in K3S_LEADER_TOLERATIONS %}
+    - key: "{{ toleration.key }}"
+      operator: "{{ toleration.operator }}"
+      value: "{{ toleration.value }}"
+      effect: "{{ toleration.effect }}"
+{% endfor %}
+{% endif %}
+{% endif %}

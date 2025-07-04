@@ -1,0 +1,49 @@
+devicePlugin:
+  config:
+    name: "device-plugin-config"
+    create: true
+    default: "any"
+    data:
+      any: |-
+        version: v1
+        flags:
+          migStrategy: none
+mig:
+  strategy: none
+driver:
+  enabled: false
+toolkit:
+  enabled: false
+operator:
+  defaultRuntime: "containerd"
+  tolerations:
+  - key: "hub.jupyter.org/dedicated"
+    operator: "Equal"
+    value: "user"
+    effect: "NoSchedule"
+daemonsets:
+  tolerations:
+  - key: "hub.jupyter.org/dedicated"
+    operator: "Equal"
+    value: "user"
+    effect: "NoSchedule"
+
+node-feature-discovery:
+  worker:
+    tolerations:
+    - key: "hub.jupyter.org/dedicated"
+      operator: "Equal"
+      value: "user"
+      effect: "NoSchedule"
+  gc:
+    tolerations:
+    - key: "hub.jupyter.org/dedicated"
+      operator: "Equal"
+      value: "core"
+      effect: "NoSchedule"
+  master:
+    tolerations:
+    - key: "hub.jupyter.org/dedicated"
+      operator: "Equal"
+      value: "core"
+      effect: "NoSchedule"
