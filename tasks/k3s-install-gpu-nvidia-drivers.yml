@@ -39,10 +39,15 @@
       src: gpu-operator-values.yaml.j2
       dest: /opt/k3s/gpu-operator-values.yaml
 
+  # - name: HELM_REPOSITORY; add nvidia as https://nvidia.github.io/gpu-operator
+  #   kubernetes.core.helm_repository:
+  #     name: nvidia
+  #     repo_url: https://nvidia.github.io/gpu-operator
+
   - name: HELM_REPOSITORY; add nvidia as https://nvidia.github.io/gpu-operator
     kubernetes.core.helm_repository:
       name: nvidia
-      repo_url: https://nvidia.github.io/gpu-operator
+      repo_url: https://helm.ngc.nvidia.com/nvidia
 
   - name: SHELL; helm repo update
     shell: helm repo update

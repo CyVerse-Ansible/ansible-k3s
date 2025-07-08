@@ -22,7 +22,7 @@ driver:
 toolkit:
   enabled: {{ K3S_NVIDIA_GPU_OPERATOR_TOOLKIT| lower }}
 operator:
-  defaultRuntime: "{{ (K3S_DOCKER_ENABLE is defined) and K3S_DOCKER_ENABLE|bool | ternary('docker', 'containerd') }}"
+  defaultRuntime: "{{ (K3S_DOCKER_ENABLE is defined and K3S_DOCKER_ENABLE|bool) | ternary('docker', 'containerd') }}"
 {% if K3S_WORKER_TOLERATIONS|length > 0 %}
   tolerations:
 {% for toleration in K3S_WORKER_TOLERATIONS %}
