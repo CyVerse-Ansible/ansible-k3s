@@ -1,8 +1,9 @@
-# This vars file supports Ubuntu 22.04+
+# This vars file supports Ubuntu 22.04 and 24.04
 
 ansible_python_interpreter: /usr/bin/python3
 
 POSTGRESQL_PACKAGES:
-  - postgresql
-  - postgresql-client
+  - "postgresql-{{ K3S_POSTGRESQL_MAJOR }}"
+  - "postgresql-client-{{ K3S_POSTGRESQL_MAJOR }}"
   - python3-psycopg2
+POSTGRESQL_SERVICE: postgresql

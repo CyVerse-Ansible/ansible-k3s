@@ -19,10 +19,6 @@ cluster-cidr: "{{ K3S_CLUSTER_CIDR }}"
 {% if K3s_FLANNEL_BACKEND is defined %}
 flannel-backend: "{{ K3s_FLANNEL_BACKEND }}"
 {% endif %}
-{% if K3S_CALICO_ENABLE is defined and K3S_CALICO_ENABLE|bool %}
-flannel-backend: none
-disable-network-policy: true
-{% endif %}
 kubelet-arg:
   - "runtime-request-timeout=30m"
 #  - "image-pull-progress-deadline=60m"

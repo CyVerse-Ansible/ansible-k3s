@@ -4,8 +4,5 @@ token: "{{ (K3S_CLUSTER_TOKEN is defined) | ternary(K3S_CLUSTER_TOKEN, k3s_maste
 {% if K3S_DOCKER_ENABLE is defined and K3S_DOCKER_ENABLE|bool %}
 docker: "{{ K3S_DOCKER_ENABLE }}"
 {% endif %}
-{% if K3S_CALICO_ENABLE is defined and K3S_CALICO_ENABLE|bool %}
-flannel-backend: none
-{% endif %}
 kubelet-arg:
   - "runtime-request-timeout=30m"

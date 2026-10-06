@@ -7,46 +7,6 @@
   set_fact:
     k3s_docker_flag:  "--docker"
   when: INTERNAL_DOCKER_ENABLE|bool
-#
-# - name: SET_FACT; set k3s_disable_traefik if K3S_TRAEFIK_ENABLE is undefined or false
-#   set_fact:
-#     k3s_disable_traefik:  "--disable traefik --disable-network-policy"
-#   when: K3S_TRAEFIK_ENABLE is undefined or not K3S_TRAEFIK_ENABLE|bool
-#
-# - name: SET_FACT; set k3s_flannel_backend if K3s_FLANNEL_BACKEND is defined
-#   set_fact:
-#     k3s_flannel_backend:  "--flannel-backend={{ K3s_FLANNEL_BACKEND }}"
-#   when: K3s_FLANNEL_BACKEND is defined
-#
-# - name: SET_FACT; set k3s_calico_enable if K3S_CALICO_ENABLE is true
-#   set_fact:
-#     k3s_calico_enable:  "--flannel-backend=none --disable-network-policy"
-#   when: K3S_CALICO_ENABLE is defined and K3S_CALICO_ENABLE|bool
-#
-# - name: SET_FACT; set k3s_token if K3S_CLUSTER_TOKEN is set
-#   set_fact:
-#     k3s_token:  "K3S_TOKEN=\"{{ K3S_CLUSTER_TOKEN }}\""
-#   when: K3S_CLUSTER_TOKEN is defined
-#
-# - name: SET_FACT; set k3s_cluster_cidr if K3S_CLUSTER_CIDR is set
-#   set_fact:
-#     k3s_cluster_cidr:  "--cluster-cidr=\"{{ K3S_CLUSTER_CIDR }}\""
-#   when: K3S_CLUSTER_CIDR is defined
-
-# - name: SET_FACT; set k3s_servicelb_disable if K3S_SERVICELB_DISABLE is true
-#   set_fact:
-#     k3s_servicelb_disable:  "--disable servicelb"
-#   when: K3S_SERVICELB_DISABLE|bool == true
-
-# - name: SET_FACT; set install_k3s_exec
-#   set_fact:
-#     install_k3s_master_exec:  "INSTALL_K3S_EXEC=\"{{ k3s_disable_traefik | default('') }} {{ k3s_calico_enable | default('') }} {{ k3s_cluster_cidr | default('') }} {{ k3s_flannel_backend | default('') }}\""
-#     install_k3s_worker_exec:  "INSTALL_K3S_EXEC=\"{{ k3s_calico_enable | default('') }}\""
-#
-# - name: SET_FACT; set k3s_postgresql_env if K3S_POSTGRESQL_ENABLE is defined and true
-#   set_fact:
-#     k3s_postgresql_env:  "K3S_DATASTORE_ENDPOINT='postgres://{{ K3S_POSTGRESQL_USER }}:{{ K3S_POSTGRESQL_PASS }}@{{ K3S_POSTGRESQL_HOST }}:{{ K3S_POSTGRESQL_PORT }}/{{ K3S_POSTGRESQL_DB }}'"
-#   when: inventory_hostname in groups['k3s_masters'] and K3S_POSTGRESQL_ENABLE is defined and K3S_POSTGRESQL_ENABLE|bool
 
 - name: FILE; create /opt/k3s
   file:
@@ -87,9 +47,10 @@
       ansible.builtin.template:
         src: master-k3-sconfig.yaml.j2
         dest: /etc/rancher/k3s/config.yaml
+      no_log: true
 
     - name: SHELL; execute install script on master nodes first
-      shell: "{{ k3s_version | default('') }} INSTALL_K3S_SKIP_START=true /opt/k3s/k3s_install.sh {{ k3s_docker_flag | default('') }} >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
+      shell: "INSTALL_K3S_CHANNEL={{ K3S_CHANNEL }} {{ k3s_version | default('') }} INSTALL_K3S_SKIP_START=true /opt/k3s/k3s_install.sh {{ k3s_docker_flag | default('') }} >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
 
     # need this because this error:  Error while dialing dial unix /run/k3s/cri-dockerd/cri-dockerd.sock: connect: no such file or directory
     - name: SYSTEMD; with k3s installed, let's start and wait for k3s service
@@ -122,22 +83,18 @@
     register: k3s_master_token_file
     delegate_to: "{{ groups['k3s_masters'][0] }}"
     run_once: true
+    no_log: true
 
   - name: SET_FACT; set the k3s_token fact for all nodes
     set_fact:
       k3s_token: "K3S_TOKEN=\"{{ k3s_master_token_file.stdout }}\""
+    no_log: true
   # when: K3S_CLUSTER_TOKEN is undefined
   # run_once: true
 
-- name: DEBUG; print master url and token
+- name: DEBUG; print master url
   debug:
-    msg: "k3s master url = {{ k3s_master_url }}, token = {{ k3s_token }}"
-
-- name: SHELL; install calico
-  shell: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
-  when:
-  - inventory_hostname in groups['k3s_masters']
-  - K3S_CALICO_ENABLE is defined and K3S_CALICO_ENABLE|bool
+    msg: "k3s master url = {{ k3s_master_url }}"
 
 - import_tasks: k3s-install-gpu-nvidia-drivers.yml
   when: inventory_hostname in groups['k3s_masters'] and K3S_GPU_ENABLE|bool
@@ -153,9 +110,10 @@
       ansible.builtin.template:
         src: agent-k3s-config.yaml.j2
         dest: /etc/rancher/k3s/config.yaml
+      no_log: true
 
     - name: SHELL; execute install script on agent nodes
-      shell: "K3S_URL={{ k3s_master_url }} {{ k3s_token }} {{ k3s_version | default('') }} INSTALL_K3S_SKIP_START=true /opt/k3s/k3s_install.sh {{ k3s_docker_flag | default('') }} >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
+      shell: "K3S_URL={{ k3s_master_url }} {{ k3s_token }} INSTALL_K3S_CHANNEL={{ K3S_CHANNEL }} {{ k3s_version | default('') }} INSTALL_K3S_SKIP_START=true /opt/k3s/k3s_install.sh {{ k3s_docker_flag | default('') }} >/opt/k3s/install.`date +'%Y%m%d-%H:%M'`.log 2>&1"
 
     # need this because this error:  Error while dialing dial unix /run/k3s/cri-dockerd/cri-dockerd.sock: connect: no such file or directory
     - name: SYSTEMD; with k3s installed, let's start and wait for k3s agent

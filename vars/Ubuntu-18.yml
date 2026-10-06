@@ -1,6 +1,0 @@
-POSTGRESQL_PACKAGES:
-  - postgresql
-  - postgresql-client
-  - python3-psycopg2
-
-INTERNAL_DOCKER_ENABLE: true

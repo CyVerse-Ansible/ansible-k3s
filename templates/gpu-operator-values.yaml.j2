@@ -1,28 +1,37 @@
+cdi:
+  enabled: {{ K3S_NVIDIA_CDI_ENABLE | lower }}
+driver:
+  enabled: {{ K3S_NVIDIA_GPU_OPERATOR_DRIVER | lower }}
+toolkit:
+  enabled: {{ K3S_NVIDIA_GPU_OPERATOR_TOOLKIT | lower }}
+  env:
+    - name: CONTAINERD_SOCKET
+      value: /run/k3s/containerd/containerd.sock
+{% if K3S_NVIDIA_GPU_OPERATOR_TOOLKIT|bool %}
+    - name: CONTAINERD_CONFIG
+      value: /var/lib/rancher/k3s/agent/etc/containerd/config.toml
+{% endif %}
+mig:
+  strategy: none
 devicePlugin:
   config:
-    name: "device-plugin-config"
     create: true
-    default: "any"
+    name: device-plugin-config
+    default: any
     data:
       any: |-
         version: v1
         flags:
           migStrategy: none
-{% if K3S_GPU_TIMESLICE_ENABLE is defined and K3S_GPU_TIMESLICE_ENABLE|bool %}
+{% if K3S_GPU_TIMESLICE_ENABLE|bool %}
         sharing:
           timeSlicing:
             resources:
-            - name: nvidia.com/gpu
-              replicas: {{ K3S_GPU_TIMESLICE_NUM }}
+              - name: nvidia.com/gpu
+                replicas: {{ K3S_GPU_TIMESLICE_NUM }}
 {% endif %}
-mig:
-  strategy: none
-driver:
-  enabled: {{ K3S_NVIDIA_GPU_OPERATOR_DRIVER | lower }}
-toolkit:
-  enabled: {{ K3S_NVIDIA_GPU_OPERATOR_TOOLKIT| lower }}
 operator:
-  defaultRuntime: "{{ (K3S_DOCKER_ENABLE is defined and K3S_DOCKER_ENABLE|bool) | ternary('docker', 'containerd') }}"
+  runtimeClass: nvidia
 {% if K3S_WORKER_TOLERATIONS|length > 0 %}
   tolerations:
 {% for toleration in K3S_WORKER_TOLERATIONS %}

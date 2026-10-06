@@ -1,4 +1,6 @@
 POSTGRESQL_PACKAGES:
-  - postgresql
-  - postgresql-server
+  - "postgresql{{ K3S_POSTGRESQL_MAJOR }}-server"
+  - "postgresql{{ K3S_POSTGRESQL_MAJOR }}"
   - python3-psycopg2
+POSTGRESQL_SERVICE: "postgresql-{{ K3S_POSTGRESQL_MAJOR }}"
+POSTGRESQL_SETUP_BIN: "/usr/pgsql-{{ K3S_POSTGRESQL_MAJOR }}/bin/postgresql-{{ K3S_POSTGRESQL_MAJOR }}-setup"

@@ -1,6 +1,6 @@
 galaxy_info:
   author: Edwin Skidmore
-  description: This role will install a single or multi-cluster k3s, with the option of installing with postgresql. At this time, this is not suppose to be a comprehensive k3s, but rather a role sufficient for CyVerse's needs
+  description: This role will install a single or multi-cluster k3s, with the option of installing with postgresql 17 from PGDG and NVIDIA GPU Operator 26.x support. At this time, this is not suppose to be a comprehensive k3s, but rather a role sufficient for CyVerse's needs
   company: CyVerse, the University fo Arizona
 
   # If the issue tracker for your role is not on github, uncomment the
@@ -36,10 +36,12 @@ galaxy_info:
   #   - 25
   - name: Ubuntu
     versions:
-  #   - all
-    - 18.04
-  #   - 7
-  #   - 99.99
+      - jammy
+      - noble
+  - name: EL
+    versions:
+      - "9"
+      - "10"
 
   galaxy_tags:
     - kubernetes

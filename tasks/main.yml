@@ -6,11 +6,28 @@
     - "{{ ansible_distribution }}.yml"
     - "{{ ansible_os_family }}.yml"
 
+- name: ASSERT; supported platform
+  ansible.builtin.assert:
+    that:
+      - (ansible_distribution == "Ubuntu" and ansible_distribution_version in ["22.04", "24.04"])
+        or (ansible_distribution in ["Rocky", "AlmaLinux"] and ansible_distribution_major_version in ["9", "10"])
+    fail_msg: "Unsupported platform {{ ansible_distribution }} {{ ansible_distribution_version }}; see README"
+
 # otherwise, it's set by vars and defaults
 - name: SET_FACT; INTERNAL_DOCKER_ENABLE = K3S_DOCKER_ENABLE
   set_fact:
     INTERNAL_DOCKER_ENABLE: "{{ K3S_DOCKER_ENABLE }}"
   when: K3S_DOCKER_ENABLE is defined
+
+- name: SET_FACT; K3s_FLANNEL_BACKEND = K3S_FLANNEL_BACKEND
+  set_fact:
+    K3s_FLANNEL_BACKEND: "{{ K3S_FLANNEL_BACKEND }}"
+  when: K3S_FLANNEL_BACKEND is defined
+
+- name: ASSERT; GPU support requires the embedded containerd runtime
+  ansible.builtin.assert:
+    that: not (K3S_GPU_ENABLE|bool and INTERNAL_DOCKER_ENABLE|bool)
+    fail_msg: "K3S_GPU_ENABLE is not supported with K3S_DOCKER_ENABLE (GPU Operator 26.x is containerd-only)"
 
 # this sets up preliminary settings for multinode k3s
 - block:
@@ -22,7 +39,7 @@
 
   - name: SYSCTL; enable forwarding ipv6
     sysctl:
-      name: net.ipv4.ip_forward
+      name: net.ipv6.conf.all.forwarding
       value: 1
       state: present
 
@@ -39,43 +56,24 @@
   #     state: present
   when: K3S_IS_MULTINODE|bool
 
-# this is only necessary if K3S_GPU_ENABLE
-- block:
-  - name: FILE; ensure /etc/containerd exists
-    file:
-      path: /etc/containerd
-      state: directory
-      mode: "0777"
+# host prep for the GPU Operator; the operator itself is installed from k3s-install.yml
+# k3s detects nvidia-container-runtime on PATH by itself, so nothing is written for containerd
+- name: Block for host NVIDIA container toolkit
+  block:
+  - name: ANSIBLE.BUILTIN.STAT; look for the host nvidia-container-runtime
+    ansible.builtin.stat:
+      path: /usr/bin/nvidia-container-runtime
+    register: nvidia_runtime_bin
 
-  - name: TEMPLATE; create /etc/containerd/config.toml
-    template:
-      src: containerd-config.toml.j2
-      dest:  /etc/containerd/config.toml
-      mode: 0644
-    register: containerd_toml
-
-  - name: SYSTEMD; restart containerd, only if containerd_toml changed
-    systemd:
-      name: containerd
-      state: restarted
-    when: containerd_toml.changed
-
-  - block:
-    - name: TEMPLATE; /etc/docker/daemon.json
-      template:
-        src: docker-daemon.json.j2
-        dest: /etc/docker/daemon.json
-        mode: 0644
-      register: docker_daemon_json
-
-    - name: SYSTEMD; restart docker, only containerd_toml changed as well (jic) or docker_daemon_json
-      systemd:
-        name: docker
-        state: restarted
-        daemon_reload: yes
-      when: containerd_toml.changed or docker_daemon_json.changed
-    when: INTERNAL_DOCKER_ENABLE|bool
-  when: K3S_GPU_ENABLE|bool
+  # with toolkit.enabled=false and cdi.enabled=true the device plugin injects by CDI and
+  # expects a spec under /etc/cdi or /var/run/cdi; hosts without the toolkit are skipped
+  # (verify on a GPU VM; drop this task if the operator generates the spec anyway)
+  - name: ANSIBLE.BUILTIN.COMMAND; generate CDI spec for host-managed toolkit
+    ansible.builtin.command: nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml
+    args:
+      creates: /etc/cdi/nvidia.yaml
+    when: nvidia_runtime_bin.stat.exists
+  when: K3S_GPU_ENABLE|bool and not K3S_NVIDIA_GPU_OPERATOR_TOOLKIT|bool
 
 - name: FILE; create /opt/k3s to be used for install log and passwords, if relevant
   file:
@@ -90,7 +88,7 @@
   when: ansible_distribution  == "Ubuntu" and K3S_FIREWALL_MANAGE is defined and K3S_FIREWALL_MANAGE|bool
 
 - import_tasks: firewall-Redhat.yml
-  when: ansible_distribution  == "AlmaLinux" or ansible_distribution  == "Rocky" or ansible_distribution  == "CentOS"
+  when: ansible_distribution in ["AlmaLinux", "Rocky"]
 
 - name: SHELL; uninstall if K3S_FORCE_UNINSTALL; if error, we'll assume it was already uninstalled
   shell: /usr/local/bin/k3s-uninstall.sh
@@ -104,6 +102,7 @@
       cmd: command -v helm
     register: helm_found
     ignore_errors: true
+    changed_when: false
 
   - name: adjust helm path based on env
     set_fact:
@@ -121,6 +120,7 @@
       cmd: command -v helm
     register: helm_found
     ignore_errors: true
+    changed_when: false
 
   - name: BLOCK; when helm is not found, install from package
     block:
@@ -128,7 +128,7 @@
         package:
           name: helm
           state: present
-        when: ansible_distribution == "CentOS" or ansible_distribution == "AlmaLinux" or ansible_distribution == "Rocky"
+        when: ansible_distribution in ["AlmaLinux", "Rocky"]
 
       - name: SNAP; install from package if the script fails
         community.general.snap:

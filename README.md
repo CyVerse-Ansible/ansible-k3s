@@ -6,7 +6,11 @@ This role will create a k3s standalone or cluster.
 Requirements
 ------------
 
+Supported platforms: Ubuntu 22.04 / 24.04 and Rocky Linux / AlmaLinux 9 / 10. The role fails early on anything else.
+
 If using Docker with k3s, then this role will depend on Docker already installed or a role that provides it.
+
+Prerequisites for GPU nodes: when `K3S_GPU_ENABLE` is true, the NVIDIA driver and `nvidia-container-toolkit` (>= 1.17) must already be installed on the host, unless `K3S_NVIDIA_GPU_OPERATOR_TOOLKIT: true` (toolkit in container). Hosts without `/usr/bin/nvidia-container-runtime` are skipped by the CDI spec generation step. GPU support uses the NVIDIA GPU Operator and the embedded containerd only.
 
 This role will setup a firewall (ufw) and by default allow all nodes within the k3s cluster to communicate with each other.
 
@@ -61,25 +65,27 @@ The following table lists optional ansible variables along with the default valu
 
 Variable Name | Default value if not defined | Description
 ------------- | ---------------------- | -----------
-K3S_DOCKER_ENABLE | version_dependent | enables the docker engine if not set will be true unless the os version is ubuntu2204 or newer
-K3S_GPU_ENABLE | false | enables nvidia gpu driver
+K3S_DOCKER_ENABLE | false | enables the docker engine (docker must already be installed); incompatible with K3S_GPU_ENABLE
+K3S_GPU_ENABLE | false | installs the NVIDIA GPU Operator; requires containerd (the default) and is incompatible with K3S_DOCKER_ENABLE
 K3S_GPU_TIMESLICE_ENABLE | false | if gpu enabled, this setting will enable time slicing
 K3S_GPU_TIMESLICE_NUM | 2 | default time slices is two, if K3S_GPU_TIMESLICE_ENABLE
-K3S_NVIDIA_USE_GPU_OPERATOR | true | default is to use nvidia's gpu operator (if gpu enabled)
+K3S_NVIDIA_GPU_OPERATOR_CHART_VERSION | v26.7.1 | version of the nvidia/gpu-operator helm chart
+K3S_NVIDIA_CDI_ENABLE | true | enables CDI in the gpu operator (cdi.enabled)
 K3S_NVIDIA_GPU_OPERATOR_DRIVER | false | use driver in container (see https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/getting-started.html)
 K3S_NVIDIA_GPU_OPERATOR_TOOLKIT | false | use toolkit in container (see https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/getting-started.html)
 K3S_TRAEFIK_ENABLE | false | disable traefik ingress
-K3s_FLANNEL_BACKEND | none | if set, it will pass the value to --flannel-backend=
-K3S_CALICO_ENABLE  (not working) | false | enable calico
+K3S_FLANNEL_BACKEND | none | if set, it will pass the value to --flannel-backend= (use `none` to install your own CNI); the old name K3s_FLANNEL_BACKEND still works
 K3S_CLUSTER_TOKEN | none | if set, the cluster will be initialized to this token, rather than randomly generated
 K3S_CLUSTER_CIDR | none | if set, cidr for cluster e.g. 192.168.0.0/16
+K3S_CHANNEL | stable | k3s release channel (stable, latest, v1.36); ignored when K3S_VERSION is set
 K3S_VERSION | none | if set, will attempt to set the k3s version
 K3S_IS_MULTINODE | false | if true, then will do additional setup to prepare hosts for multinodes (like ip forwarding)
 K3S_MASTER_INSTALL | true | reinstall master node(s)
 K3S_MASTER_IP | none | sets the k3s masters ip for when ansible_default_ipv4 is getting an incorrect value
 K3S_MASTER_PORT | 6443 | master node port
 K3S_POSTGRESQL_ENABLE | false | enables the use of postgresql
-K3S_POSTGRESQL_INSTALL | false | enables installation of postgresql on the first k3s master; K3S_POSTGRESQL_ENABLE must be true
+K3S_POSTGRESQL_INSTALL | false | enables installation of postgresql (from PGDG) on the first k3s master; K3S_POSTGRESQL_ENABLE must be true
+K3S_POSTGRESQL_MAJOR | 17 | PostgreSQL major version installed from PGDG; existing clusters on distro PostgreSQL are not migrated (pg_upgrade is out of scope)
 K3S_POSTGRESQL_HOST | 127.0.0.1 | host name or ip setting for postgresql db, from the k3s master configuration
 K3S_POSTGRESQL_PORT | 5432 | port for postgresql db
 K3S_POSTGRESQL_DB   | kubernetes | postgres database name

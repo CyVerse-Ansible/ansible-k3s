@@ -1,0 +1,11 @@
+- name: DNF; PGDG repo rpm
+  ansible.builtin.dnf:
+    name: "https://download.postgresql.org/pub/repos/yum/reporpms/EL-{{ ansible_distribution_major_version }}-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
+    state: present
+    disable_gpg_check: true
+
+# EL10 has no built-in postgresql module
+- name: DNF; disable built-in postgresql module
+  ansible.builtin.command: dnf -qy module disable postgresql
+  changed_when: false
+  when: ansible_distribution_major_version == "9"
