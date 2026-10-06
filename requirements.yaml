@@ -1,0 +1,8 @@
+---
+# Collections used by this role. Install with:
+#   ansible-galaxy collection install -r requirements.yml
+collections:
+  - name: ansible.posix          # selinux, sysctl
+  - name: community.general      # ufw, snap
+  - name: community.postgresql   # postgresql_user, postgresql_db
+  - name: kubernetes.core        # helm, helm_repository
